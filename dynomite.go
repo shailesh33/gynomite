@@ -4,6 +4,7 @@ package main
 
 import (
         "flag"
+	"bitbucket.org/shailesh33/dynomite/conf"
 )
 
 var (
@@ -45,5 +46,5 @@ func init() {
 }
 
 func main() {
-	c conf
+	conf.Parse(confFile)
 }
