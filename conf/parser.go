@@ -1,9 +1,10 @@
-package main
+package conf
 
 import (
 	"gopkg.in/yaml.v2"
-	"fmt"
 	"log"
+	"io/ioutil"
+	"errors"
 )
 
 type Conf struct {
@@ -43,40 +44,35 @@ type Conf struct {
 
 }
 
-func Parse(fileName string) Conf {
+func verifyConf(conf Conf) error {
+	if conf.Pool.ReadConsistency != DC_ONE {
+		return errors.New("Invalid configuration for read_consistency in conf file")
+	}
+	if conf.Pool.WriteConsistency != DC_ONE {
+		return errors.New("Invalid configuration for write_consistency in conf file")
+	}
+	if ()
+}
+
+func Parse(fileName string) (Conf, error) {
 	// TODO: Try to access and open filname
 	// panic if fail
+	var conf Conf
+
+	data, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		log.Fatal("error reading file %s", fileName)
+		return conf, err
+	}
 
 	// User yaml parse
 	// start storing things in it
-	var conf Conf
-	data := []byte(`dyn_o_mite:
-  datacenter: dc
-  rack: rack3
-  dyn_listen: 127.0.0.3:8101
-  dyn_seeds:
-  - 127.0.0.1:8101:rack1:dc:1383429731
-  - 127.0.0.2:8101:rack2:dc:1383429731
-  listen: 127.0.0.3:8102
-  servers:
-  - 127.0.0.1:22123:1
-  tokens: '1383429731'
-  secure_server_option: datacenter
-  pem_key_file: conf/dynomite.pem
-  data_store: 0
-  read_consistency : DC_ONE
-  write_consistency : DC_ONE`)
-
-	err := yaml.Unmarshal(data, &conf)
+	err = yaml.Unmarshal(data, &conf)
 	if err != nil {
 		log.Fatalf("error: %v", err)
+		return conf, nil
 	}
-	fmt.Printf("--- config:\n%v\n\n", conf)
-	fmt.Println(conf.Pool.KeyFile)
-	return conf
 
-}
+	return conf, nil
 
-func main() {
-	Parse("")
 }
