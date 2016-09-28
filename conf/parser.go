@@ -6,6 +6,21 @@ import (
 	"io/ioutil"
 	"errors"
 )
+var (
+	Port int
+	Datacenter string
+	Rack string
+	hostaddr string
+
+)
+
+type Node struct {
+	token 	string
+	addr 	string
+	port 	int
+	dc 	string
+	rack	string
+}
 
 type Conf struct {
 	Pool	struct {
@@ -40,18 +55,18 @@ type Conf struct {
 		GosInterval int `gos_interval`
 		Env	string `env`
 		ConnMsgRate int `conn_msg_rate`
-			  } `dyn_o_mite`
+	} `dyn_o_mite`
 
 }
 
 func verifyConf(conf Conf) error {
-	if conf.Pool.ReadConsistency != DC_ONE {
+	if conf.Pool.ReadConsistency != "DC_ONE" {
 		return errors.New("Invalid configuration for read_consistency in conf file")
 	}
-	if conf.Pool.WriteConsistency != DC_ONE {
+	if conf.Pool.WriteConsistency != "DC_ONE" {
 		return errors.New("Invalid configuration for write_consistency in conf file")
 	}
-	if ()
+	return nil
 }
 
 func Parse(fileName string) (Conf, error) {
