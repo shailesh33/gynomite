@@ -7,7 +7,7 @@ import (
 var hashType string
 
 
-func get_hash(key string ) uint64 {
+func get_hash(key string ) uint32 {
 	switch hashType {
 	case "HASH_MURMUR":
 		return hash_murmur(key)

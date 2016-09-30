@@ -1,11 +1,2 @@
-.idea/compiler.xml
-.idea/dynomite.iml
-.idea/misc.xml
-.idea/modules.xml
-.idea/vcs.xml
-.idea/workspace.xml
-.idea/copyright/profiles_settings.xml
-.idea/dictionaries/sbirari.xml
-.idea/libraries/GOPATH__conf_.xml
-.idea/libraries/GOPATH__dynomite_.xml
-conf/conf.iml
+.idea/
+*.iml
