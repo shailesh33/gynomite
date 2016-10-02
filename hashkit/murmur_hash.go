@@ -13,7 +13,13 @@ func hash_murmur(key string) uint32 {
 
 	var m uint32 = 0x5bd1e995
 	const r uint32 = 24;
-	subArr := key[0:4]
+	subArr := ""
+	if len(key) > 4 {
+		subArr = key[0:4]
+	} else {
+		subArr = key[:]
+	}
+
 	/* Mix 4 bytes at a time into the hash */
 	for len(subArr) == 4 {
 		//
