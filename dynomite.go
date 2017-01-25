@@ -5,6 +5,10 @@ package main
 import (
         "flag"
 	"bitbucket.org/shailesh33/dynomite/conf"
+	"bitbucket.org/shailesh33/dynomite/hashkit"
+	"fmt"
+	"log"
+	"bitbucket.org/shailesh33/dynomite/datastore"
 )
 
 var (
@@ -14,12 +18,8 @@ var (
 	daemonize       bool
 	testConf        bool
 	version         bool
-	statsPort       int
 	statsAddr       string
 	statsInterval	int
-	mbufSize        int
-	maxMsgs         uint64
-
 )
 /*
 -g, --gossip           : enable gossip (default: disable)
@@ -35,17 +35,26 @@ func init() {
 	flag.BoolVar(&daemonize, "d", false, "run as a daemon")
 	flag.BoolVar(&testConf, "t", false, "test configuration for syntax errors and exit")
 	flag.BoolVar(&version, "V", false, "show version and exit")
-	flag.IntVar(&statsPort, "s", 22222, "set stats monitoring port (default: 22222)")
 	flag.StringVar(&statsAddr, "a", "0.0.0.0", "set stats monitoring ip (default: 0.0.0.0)")
 	flag.IntVar(&statsInterval, "i", 30000, "set stats aggregation interval in msec (default: 30000 msec)")
-	flag.IntVar(&mbufSize, "m", 16384, "set size of mbuf chunk in bytes (default: 16384 bytes)")
-	flag.Uint64Var(&maxMsgs, "M", 200000, "set max number of messages to allocate (default: 200000)")
-
         flag.Parse()
 
 }
 
 func main() {
-	conf.Parse(confFile)
+	conf, err := conf.Parse(confFile)
+	if err != nil {
+		fmt.Println("Failed to parse file", err)
+		log.Fatal("Failed to parse file", err)
+	}
+	err = hashkit.InitHashkit(conf)
+	if err != nil {
+		log.Fatal("Failed to initialize hashkit", err)
+	}
+	err = datastore.InitDataStore(conf)
+	if err != nil {
+		log.Fatal("Failed to initialize Datastore", err)
+	}
+
 
 }

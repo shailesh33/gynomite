@@ -2,29 +2,36 @@ package hashkit
 
 import (
 	"bitbucket.org/shailesh33/dynomite/conf"
+	"log"
 	"errors"
 )
-var hashType string
+type HashType int
 
+const (
+	HASH_MURMUR = iota
+)
 
-func get_hash(key string ) uint32 {
+var hashType HashType
+
+func GetHash(key string) uint32 {
 	switch hashType {
-	case "HASH_MURMUR":
+	case HASH_MURMUR:
 		return hash_murmur(key)
 	}
-	return 0;
+	log.Panic("Hash Type not set")
+	return 0
 }
 
-func validate_hash_type() error {
-	switch hashType {
+func set_hash_type(h string) error {
+	switch h {
 	case "HASH_MURMUR":
+		hashType = HASH_MURMUR
 		return nil
-	default:
-		return errors.New("Invalid hash type")
 	}
+	log.Panic("Invalid hash type", h)
+	return errors.New("Invalid hash type or Hash module not initialized")
 }
 
-func init_hashkit(conf conf.Conf) error {
-	hashType = conf.Pool.Hash
-	return nil
+func InitHashkit(conf conf.Conf) error {
+	return set_hash_type(conf.Pool.Hash)
 }

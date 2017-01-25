@@ -14,47 +14,42 @@ var (
 
 )
 
-type Node struct {
-	token 	string
-	addr 	string
-	port 	int
-	dc 	string
-	rack	string
-}
-
 type Conf struct {
 	Pool	struct {
-		Datacenter	string
-		Rack		string
-		DynListen	string `dyn_listen`
-		DynSeeds	[]string `dyn_seeds`
-		Listen		string
-		Servers		[]string
-		Tokens		string
-		Encryption string `secure_server_option`
-		KeyFile	string `pem_key_file`
-		DataStore	int    `data_store`
-		ReadConsistency	string `read_consistency`
+		Datacenter		string
+		Rack			string
+		DynListen		string `dyn_listen`
+		DynSeeds		[]string `dyn_seeds`
+		Listen			string
+		Servers			[]string
+		Tokens			string
+		Encryption 		string `secure_server_option`
+		KeyFile			string `pem_key_file`
+		DataStore		int    `data_store`
+		ReadConsistency		string `read_consistency`
 		WriteConsistency	string `write_consistency`
-		Hash		string
-		HashTag		string
-		Distribution	string
-		Timeout		int
-		Backlog		int
-		ClientConnections int `client_connections`
-		PreConnect	bool
-		AutoEjectHosts  bool `auto_eject_hosts`
-		ServerConnections int `server_connections`
-		ServerRetryTimeout int `server_retry_timeout`
-		ServerFailureLimit int `server_failure_limit`
-		DynReadTimeout int `dyn_read_timeout`
-		DynWriteTimeout int `dyn_write_timeout`
-		DynSeedsProvider string `dyn_seed_provider`
-		DynPort	int `dyn_port`
-		DynConnections int `dyn_connections`
-		GosInterval int `gos_interval`
-		Env	string `env`
-		ConnMsgRate int `conn_msg_rate`
+		Hash			string
+		HashTag			string
+		Distribution		string
+		Timeout			int
+		Backlog			int
+		ClientConnections 	int `client_connections`
+		PreConnect		bool
+		AutoEjectHosts  	bool `auto_eject_hosts`
+		ServerConnections 	int `server_connections`
+		ServerRetryTimeout 	int `server_retry_timeout`
+		ServerFailureLimit 	int `server_failure_limit`
+		DynReadTimeout 		int `dyn_read_timeout`
+		DynWriteTimeout 	int `dyn_write_timeout`
+		DynSeedsProvider 	string `dyn_seed_provider`
+		DynPort			int `dyn_port`
+		DynConnections 		int `dyn_connections`
+		GosInterval		int `gos_interval`
+		Env			string `env`
+		ConnMsgRate		int `conn_msg_rate`
+		MBufSize		int `mbuf_size`
+		MaxMsgs 		int `max_msgs`
+		StatsListen		string	`stats_listen`
 	} `dyn_o_mite`
 
 }
@@ -70,13 +65,11 @@ func verifyConf(conf Conf) error {
 }
 
 func Parse(fileName string) (Conf, error) {
-	// TODO: Try to access and open filname
-	// panic if fail
 	var conf Conf
-
+	log.Println("Parsing file " + fileName)
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		log.Fatal("error reading file %s", fileName)
+		log.Fatal("error reading file ", fileName)
 		return conf, err
 	}
 

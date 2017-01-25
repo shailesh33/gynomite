@@ -86,7 +86,7 @@ func testHashMurmur(t *testing.T) {
 		// Calculate hashes
 		goHash := hash_murmur(string(key))
 		cHash := uint32(C.hash(ccp, C.size_t(len(key))))
-		
+
 		if goHash != cHash {
 			fmt.Println("Hash mismatch Key", key, "\ngoHash:", goHash, "\ncHash:", cHash)
 			fmt.Println("HashCode: ", goHash, "CHash:", cHash)
