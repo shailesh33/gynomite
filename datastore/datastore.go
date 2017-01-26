@@ -1,6 +1,9 @@
 package datastore
 
-import "bitbucket.org/shailesh33/dynomite/conf"
+import (
+	"bitbucket.org/shailesh33/dynomite/conf"
+	"log"
+)
 
 type DataStore int
 const (
@@ -15,5 +18,6 @@ type MessageParser interface {
 }
 func InitDataStore(conf conf.Conf) error {
     	gdatastore = DataStore(conf.Pool.DataStore)
+	log.Println("Using datastore ", gdatastore)
 	return nil
 }

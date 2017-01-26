@@ -1,10 +1,10 @@
 package conf
 
 import (
-	"gopkg.in/yaml.v2"
+	"errors"
 	"log"
 	"io/ioutil"
-	"errors"
+	"gopkg.in/yaml.v2"
 )
 var (
 	Port int
@@ -28,7 +28,7 @@ type Conf struct {
 		DataStore		int    `data_store`
 		ReadConsistency		string `read_consistency`
 		WriteConsistency	string `write_consistency`
-		Hash			string
+		Hash			string `hash`
 		HashTag			string
 		Distribution		string
 		Timeout			int
@@ -64,9 +64,13 @@ func verifyConf(conf Conf) error {
 	return nil
 }
 
+func init() {
+	log.Println("initing")
+}
+
 func Parse(fileName string) (Conf, error) {
 	var conf Conf
-	log.Println("Parsing file " + fileName)
+	log.Printf("Parsing file " + fileName)
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		log.Fatal("error reading file ", fileName)

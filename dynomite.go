@@ -3,13 +3,15 @@
 package main
 
 import (
-        "flag"
-	"bitbucket.org/shailesh33/dynomite/conf"
-	"bitbucket.org/shailesh33/dynomite/hashkit"
 	"fmt"
+
+	"bitbucket.org/shailesh33/dynomite/conf"
 	"log"
+	"flag"
 	"bitbucket.org/shailesh33/dynomite/datastore"
+	"bitbucket.org/shailesh33/dynomite/topology"
 )
+
 
 var (
         verbosity       int
@@ -38,7 +40,6 @@ func init() {
 	flag.StringVar(&statsAddr, "a", "0.0.0.0", "set stats monitoring ip (default: 0.0.0.0)")
 	flag.IntVar(&statsInterval, "i", 30000, "set stats aggregation interval in msec (default: 30000 msec)")
         flag.Parse()
-
 }
 
 func main() {
@@ -47,14 +48,17 @@ func main() {
 		fmt.Println("Failed to parse file", err)
 		log.Fatal("Failed to parse file", err)
 	}
-	err = hashkit.InitHashkit(conf)
+	fmt.Println(conf.Pool.Hash)
+	/*err = hashkit.InitHashkit(conf.Pool.Hash)
 	if err != nil {
 		log.Fatal("Failed to initialize hashkit", err)
-	}
+	}*/
 	err = datastore.InitDataStore(conf)
 	if err != nil {
 		log.Fatal("Failed to initialize Datastore", err)
 	}
 
+	topo, err := topology.InitTopology(conf)
+	topology.Topology_print(topo)
 
 }

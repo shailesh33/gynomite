@@ -50,20 +50,8 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	topo.dcMap = newDcMap()
 	// add local node
 
-	var dc Datacenter
-	var ok bool
-	dc, ok = topo.dcMap.get(topo.mydc)
-	if ok == false {
-		dc = Datacenter{name:topo.mydc, rackMap:newRackMap()}
-		topo.dcMap.add(dc)
-	}
-
-	var rack Rack
-	rack, ok = dc.rackMap.get(topo.myrack)
-	if ok == false {
-		rack = Rack{name:topo.myrack, nodeMap:newNodeMap()}
-		dc.rackMap.add(rack)
-	}
+	dc := topo_get_or_create_dc(topo, topo.mydc)
+	rack := dc_get_or_create_rack(dc, topo.myrack)
 
 	var node Node
 	node.is_local = true
@@ -78,6 +66,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	if (err != nil) {
 		return Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
+	rack.nodeMap.add(node)
 
 	for _, p := range conf.Pool.DynSeeds {
 		parts := strings.Split(p, ":")
