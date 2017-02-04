@@ -10,6 +10,7 @@ import (
 	"flag"
 	"bitbucket.org/shailesh33/dynomite/datastore"
 	"bitbucket.org/shailesh33/dynomite/topology"
+	"bitbucket.org/shailesh33/dynomite/hashkit"
 )
 
 
@@ -49,10 +50,10 @@ func main() {
 		log.Fatal("Failed to parse file", err)
 	}
 	fmt.Println(conf.Pool.Hash)
-	/*err = hashkit.InitHashkit(conf.Pool.Hash)
+	err = hashkit.InitHashkit(conf.Pool.Hash)
 	if err != nil {
 		log.Fatal("Failed to initialize hashkit", err)
-	}*/
+	}
 	err = datastore.InitDataStore(conf)
 	if err != nil {
 		log.Fatal("Failed to initialize Datastore", err)
@@ -60,5 +61,8 @@ func main() {
 
 	topo, err := topology.InitTopology(conf)
 	topology.Topology_print(topo)
+
+
+
 
 }

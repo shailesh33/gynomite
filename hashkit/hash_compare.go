@@ -77,6 +77,7 @@ func getRandomKey() []byte {
 }
 
 func testHashMurmur(t *testing.T) {
+	t.Logf("Staring test")
 	for i:=0; i< 1000000; i++ {
 
 		// Generate key
