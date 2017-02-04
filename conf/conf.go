@@ -21,7 +21,7 @@ type Conf struct {
 		DynListen          string   `dyn_listen`
 		DynSeeds           []string `dyn_seeds`
 		Listen             string
-		Servers            []string
+		Servers            []string `servers`
 		Tokens             string
 		Encryption         string `secure_server_option`
 		KeyFile            string `pem_key_file`

@@ -54,15 +54,15 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to initialize hashkit", err)
 	}
-	err = datastore.InitDataStore(conf)
+	var ds datastore.Datastore
+	ds, err = datastore.InitDataStore(conf)
 	if err != nil {
 		log.Fatal("Failed to initialize Datastore", err)
 	}
+	log.Println("Using Datastore at ", ds)
 
 	topo, err := topology.InitTopology(conf)
 	topology.Topology_print(topo)
-
-
 
 
 }
