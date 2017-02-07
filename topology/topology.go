@@ -14,6 +14,7 @@ type Topology struct {
 	myrack	string
 	mydatastore_server string
 	dcMap	dcMap
+	localNode Node
 }
 
 func topo_get_or_create_dc(topo Topology, dc_name string) (Datacenter) {
@@ -35,6 +36,10 @@ func Topology_print(t Topology)  {
 			}
 		}
 	}
+}
+
+func GetLocalNode(topo Topology) Node {
+	return topo.localNode
 }
 
 func InitTopology(conf conf.Conf) (Topology, error) {
@@ -66,6 +71,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	if (err != nil) {
 		return Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
+	topo.localNode = node
 	rack.nodeMap.add(node)
 
 	for _, p := range conf.Pool.DynSeeds {

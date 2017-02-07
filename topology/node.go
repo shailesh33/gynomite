@@ -29,3 +29,11 @@ func (m nodeMap) get(nodeToken string) (b Node, ok bool) {
 	b, ok = m.m[strings.ToLower(nodeToken)]
 	return
 }
+
+func (n Node) Addr() string {
+	return n.addr
+}
+
+func (n Node) Port() int {
+	return n.port
+}

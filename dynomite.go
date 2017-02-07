@@ -11,6 +11,10 @@ import (
 	"bitbucket.org/shailesh33/dynomite/datastore"
 	"bitbucket.org/shailesh33/dynomite/topology"
 	"bitbucket.org/shailesh33/dynomite/hashkit"
+	"net"
+	"os"
+	"time"
+	"bufio"
 )
 
 
@@ -64,5 +68,41 @@ func main() {
 	topo, err := topology.InitTopology(conf)
 	topology.Topology_print(topo)
 
+	listener, err := net.Listen("tcp", conf.Pool.Listen)
+	if err != nil {
+		log.Println("Error listening on ", conf.Pool.Listen, err.Error())
+		os.Exit(1)
+	}
+	defer listener.Close()
+	log.Println("Listening on ", conf.Pool.Listen)
+	for {
+		// Listen for an incoming connection.
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println("Error accepting: ", err.Error())
+			os.Exit(1)
+		}
+		// Handle connections in a new goroutine.
+		go handleClient(conn)
+	}
+}
+
+
+
+func handleClient(clientConn net.Conn) {
+	tcpConn := clientConn.(*net.TCPConn)
+	tcpConn.SetKeepAlive(true)
+	tcpConn.SetKeepAlivePeriod(30 * time.Second)
+	clientReader := bufio.NewReader(clientConn)
+//	clientWriter := bufio.NewWriter(clientConn)
+
+	// reader from clientReader and parse it
+	parser := datastore.NewRedisParser(clientReader)
+	r, err:= parser.GetNextMessage()
+	if err != nil {
+		fmt.Errorf("Failed to parse a request ", err)
+	}
+
+	log.Println("Received request ", parser.GetRequestType(r.Name), r.Name)
 
 }

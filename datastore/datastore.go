@@ -15,12 +15,7 @@ const (
 )
 
 var gdatastore DataStoreType
-
-type MessageParser interface {
-
-}
-
-
+var dataStoreTypeDesc = [...]string{REDIS: "REDIS", MEMCACHE: "MEMCACHE"}
 
 
 type Datastore struct {
@@ -35,7 +30,7 @@ type Datastore struct {
 
 func InitDataStore(conf conf.Conf) (Datastore, error) {
     	gdatastore = DataStoreType(conf.Pool.DataStore)
-	log.Println("Using datastore ", gdatastore)
+	log.Println("Using datastore", dataStoreTypeDesc[gdatastore])
 	if (len(conf.Pool.Servers) != 1) {
 		return Datastore{}, fmt.Errorf("Expecting only 1 server in the server list of the yaml file")
 	}
