@@ -3,31 +3,32 @@
 package main
 
 import (
-	"fmt"
-
-	"bitbucket.org/shailesh33/dynomite/conf"
-	"log"
+	"bufio"
 	"flag"
-	"bitbucket.org/shailesh33/dynomite/datastore"
-	"bitbucket.org/shailesh33/dynomite/topology"
-	"bitbucket.org/shailesh33/dynomite/hashkit"
+	"fmt"
+	"io"
+	"log"
 	"net"
 	"os"
 	"time"
-	"bufio"
-)
 
+	"bitbucket.org/shailesh33/dynomite/conf"
+	"bitbucket.org/shailesh33/dynomite/datastore"
+	"bitbucket.org/shailesh33/dynomite/hashkit"
+	"bitbucket.org/shailesh33/dynomite/topology"
+)
 
 var (
-        verbosity       int
-	confFile        string
-	logFileName     string
-	daemonize       bool
-	testConf        bool
-	version         bool
-	statsAddr       string
-	statsInterval	int
+	verbosity     int
+	confFile      string
+	logFileName   string
+	daemonize     bool
+	testConf      bool
+	version       bool
+	statsAddr     string
+	statsInterval int
 )
+
 /*
 -g, --gossip           : enable gossip (default: disable)
 -D, --describe-stats   : print stats description and exit
@@ -36,7 +37,7 @@ var (
 */
 
 func init() {
-        flag.StringVar(&confFile, "c", "conf/dynomite.yml", "set configuration file (default: conf/dynomite.yml)")
+	flag.StringVar(&confFile, "c", "conf/dynomite.yml", "set configuration file (default: conf/dynomite.yml)")
 	flag.IntVar(&verbosity, "v", 5, "set logging level (default 5, min: 0, max:11")
 	flag.StringVar(&logFileName, "o", "dynomite.log", "set logging file (default: stderr)")
 	flag.BoolVar(&daemonize, "d", false, "run as a daemon")
@@ -44,7 +45,7 @@ func init() {
 	flag.BoolVar(&version, "V", false, "show version and exit")
 	flag.StringVar(&statsAddr, "a", "0.0.0.0", "set stats monitoring ip (default: 0.0.0.0)")
 	flag.IntVar(&statsInterval, "i", 30000, "set stats aggregation interval in msec (default: 30000 msec)")
-        flag.Parse()
+	flag.Parse()
 }
 
 func main() {
@@ -87,22 +88,40 @@ func main() {
 	}
 }
 
-
-
 func handleClient(clientConn net.Conn) {
 	tcpConn := clientConn.(*net.TCPConn)
 	tcpConn.SetKeepAlive(true)
 	tcpConn.SetKeepAlivePeriod(30 * time.Second)
 	clientReader := bufio.NewReader(clientConn)
-//	clientWriter := bufio.NewWriter(clientConn)
+	clientWriter := bufio.NewWriter(clientConn)
 
 	// reader from clientReader and parse it
 	parser := datastore.NewRedisParser(clientReader)
-	r, err:= parser.GetNextMessage()
-	if err != nil {
-		fmt.Errorf("Failed to parse a request ", err)
+
+	for {
+		r, err := parser.GetNextMessage()
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			log.Println("Failed to parse a request ", err)
+			return
+		}
+		//log.Println("Received request ", parser.GetRequestType(r.Name), r.Name)
+
+		switch r.Type {
+		case datastore.REQUEST_REDIS_COMMAND:
+			rsp := datastore.NewArrayResponse()
+
+			//rsp.AppendArgs([]byte("GET"))
+			//rsp.AppendArgs([]byte("SET"))
+			//rsp.AppendArgs([]byte("COMMAND"))
+			rsp.Write(clientWriter)
+		case datastore.REQUEST_REDIS_SET:
+			rsp := datastore.NewStatusResponse("OK")
+			rsp.Write(clientWriter)
+		}
+
+		clientWriter.Flush()
 	}
-
-	log.Println("Received request ", parser.GetRequestType(r.Name), r.Name)
-
 }
