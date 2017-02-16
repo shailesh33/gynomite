@@ -3,18 +3,16 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"bitbucket.org/shailesh33/dynomite/conf"
 	"bitbucket.org/shailesh33/dynomite/datastore"
 	"bitbucket.org/shailesh33/dynomite/hashkit"
+	"bitbucket.org/shailesh33/dynomite/server"
 	"bitbucket.org/shailesh33/dynomite/topology"
 )
 
@@ -84,19 +82,20 @@ func main() {
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleClient(conn)
+		go handleClient2(conn)
 	}
 }
 
-func handleClient(clientConn net.Conn) {
-	tcpConn := clientConn.(*net.TCPConn)
-	tcpConn.SetKeepAlive(true)
-	tcpConn.SetKeepAlivePeriod(30 * time.Second)
-	clientReader := bufio.NewReader(clientConn)
-	clientWriter := bufio.NewWriter(clientConn)
+func handleClient2(clientConn net.Conn) {
+	datastoreConn, err := server.NewDatastoreConnHanler(clientConn)
+	if err != nil {
+		log.Println("Failed to handle client ", err)
+		return
+	}
+	go datastoreConn.Run()
 
 	// reader from clientReader and parse it
-	parser := datastore.NewRedisParser(clientReader)
+	/*parser := datastore.NewRedisRequestParser(clientReader)
 
 	for {
 		r, err := parser.GetNextMessage()
@@ -113,9 +112,6 @@ func handleClient(clientConn net.Conn) {
 		case datastore.REQUEST_REDIS_COMMAND:
 			rsp := datastore.NewArrayResponse()
 
-			//rsp.AppendArgs([]byte("GET"))
-			//rsp.AppendArgs([]byte("SET"))
-			//rsp.AppendArgs([]byte("COMMAND"))
 			rsp.Write(clientWriter)
 		case datastore.REQUEST_REDIS_SET:
 			rsp := datastore.NewStatusResponse("OK")
@@ -123,5 +119,46 @@ func handleClient(clientConn net.Conn) {
 		}
 
 		clientWriter.Flush()
+	}*/
+}
+
+func handleClient(clientConn net.Conn) {
+	c, err := server.NewClientConnHandler(clientConn)
+	if err != nil {
+		log.Println("Failed to handle client ", err)
 	}
+	c.Run()
+	//
+	//tcpConn := clientConn.(*net.TCPConn)
+	//tcpConn.SetKeepAlive(true)
+	//tcpConn.SetKeepAlivePeriod(30 * time.Second)
+	//clientReader := bufio.NewReader(clientConn)
+	//clientWriter := bufio.NewWriter(clientConn)
+	//
+	//// reader from clientReader and parse it
+	//parser := datastore.NewRedisRequestParser(clientReader)
+	//
+	//for {
+	//	r, err := parser.GetNextMessage()
+	//	if err != nil {
+	//		if err == io.EOF {
+	//			return
+	//		}
+	//		log.Println("Failed to parse a request ", err)
+	//		return
+	//	}
+	//	//log.Println("Received request ", parser.GetRequestType(r.Name), r.Name)
+	//
+	//	switch r.Type {
+	//	case datastore.REQUEST_REDIS_COMMAND:
+	//		rsp := datastore.NewArrayResponse()
+	//
+	//		rsp.Write(clientWriter)
+	//	case datastore.REQUEST_REDIS_SET:
+	//		rsp := datastore.NewStatusResponse("OK")
+	//		rsp.Write(clientWriter)
+	//	}
+	//
+	//	clientWriter.Flush()
+	//}
 }

@@ -53,7 +53,7 @@ func NewStatusResponse(s string) *StatusResponse {
 	return &StatusResponse{S: s}
 }
 
-func statusResponseParser(r *bufio.Reader) (*StatusResponse, error) {
+func statusResponseParser(r *bufio.Reader) (common.Message, error) {
 	rsp := StatusResponse{}
 	line, err := r.ReadString('\n')
 	if err != nil {
@@ -222,11 +222,11 @@ type RedisResponseParser struct {
 	r *bufio.Reader
 }
 
-func NewResponseParser(r *bufio.Reader) RedisResponseParser {
+func NewRedisResponseParser(r *bufio.Reader) RedisResponseParser {
 	return RedisResponseParser{r: r}
 }
 
-func (parser *RedisResponseParser) GetNextMessage() (common.Message, error) {
+func (parser RedisResponseParser) GetNextMessage() (common.Message, error) {
 	// peek first byte
 	b, err := parser.r.Peek(1)
 	if err != nil {

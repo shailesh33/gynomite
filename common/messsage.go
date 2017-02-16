@@ -30,7 +30,7 @@ type Request struct {
 }
 
 type Parser interface {
-	GetNextMessage() (*Message, error)
+	GetNextMessage() (Message, error)
 }
 
 /*

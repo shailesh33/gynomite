@@ -84,11 +84,11 @@ type RedisRequestParser struct {
 	r *bufio.Reader
 }
 
-func NewRedisParser(r *bufio.Reader) RedisRequestParser {
+func NewRedisRequestParser(r *bufio.Reader) RedisRequestParser {
 	return RedisRequestParser{r: r}
 }
 
-func (parser *RedisRequestParser) GetNextMessage() (*common.Request, error) {
+func (parser RedisRequestParser) GetNextMessage() (common.Message, error) {
 	r := parser.r
 	line, err := parser.r.ReadString('\n')
 	if err != nil {
@@ -120,7 +120,7 @@ func (parser *RedisRequestParser) GetNextMessage() (*common.Request, error) {
 		}
 	}
 
-	return &common.Request{
+	return common.Request{
 		Type: GetRequestType(string(firstArg)),
 		Name: strings.ToUpper(string(firstArg)),
 		Args: args,
