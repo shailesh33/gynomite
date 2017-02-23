@@ -3,14 +3,14 @@ package topology
 import "strings"
 
 type Node struct {
-	token 	string
-	addr 	string
-	port 	int
-	dc_name string
-	rack_name string
-	is_local bool
+	token        string
+	addr         string
+	port         int
+	dc_name      string
+	rack_name    string
+	is_local     bool
 	is_same_rack bool
-	is_same_dc bool
+	is_same_dc   bool
 }
 
 type nodeMap struct {

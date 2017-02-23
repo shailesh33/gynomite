@@ -1,12 +1,11 @@
 package topology
 
-
 import (
-	"testing"
-	"io/ioutil"
-	"path/filepath"
 	"bitbucket.org/shailesh33/dynomite/conf"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"testing"
 )
 
 func TestInitTopology(t *testing.T) {

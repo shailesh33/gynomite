@@ -1,9 +1,12 @@
 package datastore
 
 import (
+	"bitbucket.org/shailesh33/dynomite/common"
 	"bitbucket.org/shailesh33/dynomite/conf"
+	"bufio"
 	"fmt"
 	"log"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -17,6 +20,7 @@ const (
 
 var gdatastore DataStoreType
 var dataStoreTypeDesc = [...]string{REDIS: "REDIS", MEMCACHE: "MEMCACHE"}
+var gDatastoreConn DataStoreConn
 
 type Datastore struct {
 	ip   string
@@ -49,4 +53,41 @@ func InitDataStore(conf conf.Conf) (Datastore, error) {
 	}
 	d := Datastore{ip: ip, port: port}
 	return d, nil
+}
+
+func InitDataStoreConn(d Datastore) error {
+	conn, err := net.Dial("tcp", net.JoinHostPort(d.ip, strconv.Itoa(d.port)))
+	if err != nil {
+		return err
+	}
+	gDatastoreConn, err = NewDataStoreConn(conn)
+	if err != nil {
+		log.Println("Failed to initialize Datastore conn")
+		return err
+	}
+	log.Println("Connected to datastore ", d)
+	go gDatastoreConn.Loop()
+	return nil
+}
+
+func GetDatastoreConn() DataStoreConn {
+	return gDatastoreConn
+}
+
+func NewRequestParser(reader *bufio.Reader, owner common.Context) common.Parser {
+	switch gdatastore {
+	case REDIS:
+		return newRedisRequestParser(reader, owner)
+	}
+	log.Panicln("Unsupported datastore")
+	return nil
+}
+
+func NewResponseParser(reader *bufio.Reader) common.Parser {
+	switch gdatastore {
+	case REDIS:
+		return newRedisResponseParser(reader)
+	}
+	log.Panicln("Unsupported datastore")
+	return nil
 }

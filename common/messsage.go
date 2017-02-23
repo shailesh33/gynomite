@@ -4,43 +4,40 @@ import (
 	"bufio"
 )
 
+type RequestType int
+
 //////////////////////////
 // This is a generic message that flow in the system
 type Message interface {
-	Handle() error
 	Write(w *bufio.Writer) error
 }
 
-// This is a response, could be a datastore response on a dnode response
-type Response struct {
+type Context interface {
+}
+
+// This is a request, could be a datastore request or a dnode request
+type Request interface {
+	Message
+	GetContext() Context
+	GetType() RequestType
+}
+
+// This is a response, could be a datastore response or a dnode response
+type Response interface {
 	Message
 }
 
-type RequestType int
-
-// This is a request, could be datastore request from the client of a message to a peer
-type Request struct {
-	Message
-	Name string
-	Type RequestType
-	Args [][]byte
-	//func GetType (RequestType)
-	//func GetKey ([]byte)
-
-}
-
+// Parser to parse message
 type Parser interface {
 	GetNextMessage() (Message, error)
 }
 
-/*
-// This is an interfact that parses request from the stream of data typically from the client.
+// This is an interface that parses request from the stream of data typically from the client.
 type RequestParser interface {
-	GetNextRequest() (*Request, error)
-}*/
-/*
+	GetNextRequest() (Request, error)
+}
+
 // This is an interfact that parses request from the stream of data typically from the underlying datastore.
 type ResponseParser interface {
-	GetNextResponse() (*Response, error)
+	GetNextResponse() (Response, error)
 }
-*/

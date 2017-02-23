@@ -2,32 +2,31 @@ package topology
 
 import (
 	"bitbucket.org/shailesh33/dynomite/conf"
-	"strings"
-	"log"
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
 )
 
-
 type Topology struct {
-	mydc	string
-	myrack	string
+	mydc               string
+	myrack             string
 	mydatastore_server string
-	dcMap	dcMap
-	localNode Node
+	dcMap              dcMap
+	localNode          Node
 }
 
-func topo_get_or_create_dc(topo Topology, dc_name string) (Datacenter) {
+func topo_get_or_create_dc(topo Topology, dc_name string) Datacenter {
 	dc, ok := topo.dcMap.get(dc_name)
 	if ok == true {
 		return dc
 	}
-	dc = Datacenter{name:dc_name, rackMap:newRackMap()}
+	dc = Datacenter{name: dc_name, rackMap: newRackMap()}
 	topo.dcMap.add(dc)
 	return dc
 }
 
-func Topology_print(t Topology)  {
+func Topology_print(t Topology) {
 	log.Println("DC: " + t.mydc + " Rack: " + t.myrack)
 	for dcname, dc := range t.dcMap.m {
 		for rackname, rack := range dc.rackMap.m {
@@ -68,7 +67,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	node.addr = host_port[0]
 	var err error = nil
 	node.port, err = strconv.Atoi(host_port[1])
-	if (err != nil) {
+	if err != nil {
 		return Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
 	topo.localNode = node
@@ -76,24 +75,24 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 
 	for _, p := range conf.Pool.DynSeeds {
 		parts := strings.Split(p, ":")
-		if (len(parts) != 5) {
+		if len(parts) != 5 {
 			return Topology{}, fmt.Errorf("Invalid entry in dyn_seeds %s", p)
 		}
-		var peer Node;
+		var peer Node
 		peer.addr = parts[0]
 		peer.port, err = strconv.Atoi(parts[1])
-		if (err != nil) {
+		if err != nil {
 			return Topology{}, fmt.Errorf("Invalid port in peer option %s", p)
 		}
 		peer.rack_name = parts[2]
 		peer.dc_name = parts[3]
 		peer.token = parts[4]
 
-		if (strings.EqualFold(peer.dc_name, topo.mydc)) {
+		if strings.EqualFold(peer.dc_name, topo.mydc) {
 			peer.is_same_dc = true
 		}
 
-		if (strings.EqualFold(peer.rack_name, topo.myrack)) {
+		if strings.EqualFold(peer.rack_name, topo.myrack) {
 			peer.is_same_rack = true
 		}
 		peer.is_local = false

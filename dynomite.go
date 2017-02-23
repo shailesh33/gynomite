@@ -67,6 +67,11 @@ func main() {
 	topo, err := topology.InitTopology(conf)
 	topology.Topology_print(topo)
 
+	err = datastore.InitDataStoreConn(ds)
+	if err != nil {
+		log.Printf("Failed to connect to datastore")
+		os.Exit(1)
+	}
 	listener, err := net.Listen("tcp", conf.Pool.Listen)
 	if err != nil {
 		log.Println("Error listening on ", conf.Pool.Listen, err.Error())
@@ -82,44 +87,8 @@ func main() {
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleClient2(conn)
+		go handleClient(conn)
 	}
-}
-
-func handleClient2(clientConn net.Conn) {
-	datastoreConn, err := server.NewDatastoreConnHanler(clientConn)
-	if err != nil {
-		log.Println("Failed to handle client ", err)
-		return
-	}
-	go datastoreConn.Run()
-
-	// reader from clientReader and parse it
-	/*parser := datastore.NewRedisRequestParser(clientReader)
-
-	for {
-		r, err := parser.GetNextMessage()
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			log.Println("Failed to parse a request ", err)
-			return
-		}
-		//log.Println("Received request ", parser.GetRequestType(r.Name), r.Name)
-
-		switch r.Type {
-		case datastore.REQUEST_REDIS_COMMAND:
-			rsp := datastore.NewArrayResponse()
-
-			rsp.Write(clientWriter)
-		case datastore.REQUEST_REDIS_SET:
-			rsp := datastore.NewStatusResponse("OK")
-			rsp.Write(clientWriter)
-		}
-
-		clientWriter.Flush()
-	}*/
 }
 
 func handleClient(clientConn net.Conn) {
@@ -127,38 +96,10 @@ func handleClient(clientConn net.Conn) {
 	if err != nil {
 		log.Println("Failed to handle client ", err)
 	}
-	c.Run()
+	c.Loop()
 	//
 	//tcpConn := clientConn.(*net.TCPConn)
 	//tcpConn.SetKeepAlive(true)
 	//tcpConn.SetKeepAlivePeriod(30 * time.Second)
-	//clientReader := bufio.NewReader(clientConn)
-	//clientWriter := bufio.NewWriter(clientConn)
-	//
-	//// reader from clientReader and parse it
-	//parser := datastore.NewRedisRequestParser(clientReader)
-	//
-	//for {
-	//	r, err := parser.GetNextMessage()
-	//	if err != nil {
-	//		if err == io.EOF {
-	//			return
-	//		}
-	//		log.Println("Failed to parse a request ", err)
-	//		return
-	//	}
-	//	//log.Println("Received request ", parser.GetRequestType(r.Name), r.Name)
-	//
-	//	switch r.Type {
-	//	case datastore.REQUEST_REDIS_COMMAND:
-	//		rsp := datastore.NewArrayResponse()
-	//
-	//		rsp.Write(clientWriter)
-	//	case datastore.REQUEST_REDIS_SET:
-	//		rsp := datastore.NewStatusResponse("OK")
-	//		rsp.Write(clientWriter)
-	//	}
-	//
-	//	clientWriter.Flush()
-	//}
+
 }

@@ -4,20 +4,20 @@ import (
 	"bitbucket.org/shailesh33/dynomite/common"
 	"bufio"
 	"fmt"
+	"log"
 	"strconv"
 )
 
 /////////// integer response
-type IntegerResponse struct {
-	common.Response
+type integerResponse struct {
 	I int
 }
 
-func NewIntegerResponse(i int) *IntegerResponse {
-	return &IntegerResponse{I: i}
+func NewIntegerResponse(i int) integerResponse {
+	return integerResponse{I: i}
 }
 
-func (r *IntegerResponse) Write(w *bufio.Writer) error {
+func (r integerResponse) Write(w *bufio.Writer) error {
 	w.WriteByte(':')
 	w.WriteString(strconv.Itoa(r.I))
 	w.WriteString("\r\n")
@@ -25,54 +25,55 @@ func (r *IntegerResponse) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func integerResponseParser(r *bufio.Reader) (*IntegerResponse, error) {
-	rsp := IntegerResponse{}
+func (parser redisResponseParser) integerResponseParser() (integerResponse, error) {
+	r := parser.r
 	line, err := r.ReadString('\n')
 	if err != nil {
-		return nil, err
+		return integerResponse{}, err
 	}
 	if len(line) == 0 {
-		return nil, fmt.Errorf("Empty line")
+		return integerResponse{}, fmt.Errorf("Empty line")
 	}
 	var i int
 
 	if _, err := fmt.Sscanf(line, ":%d\r\n", &i); err != nil {
-		return nil, fmt.Errorf("invalid status ", line)
+		return integerResponse{}, fmt.Errorf("invalid status ", line)
 	}
-	rsp.I = i
-	return &rsp, nil
+	log.Println("Returning Integer ", i)
+
+	return NewIntegerResponse(i), nil
 }
 
 //////////// Status response
 type StatusResponse struct {
-	common.Response
 	S string
 }
 
-func NewStatusResponse(s string) *StatusResponse {
-	return &StatusResponse{S: s}
+func NewStatusResponse(s string) StatusResponse {
+	return StatusResponse{S: s}
 }
 
-func statusResponseParser(r *bufio.Reader) (common.Message, error) {
-	rsp := StatusResponse{}
+func (parser redisResponseParser) statusResponseParser() (StatusResponse, error) {
+	r := parser.r
 	line, err := r.ReadString('\n')
 	if err != nil {
-		return nil, err
+		return StatusResponse{}, err
 	}
 	if len(line) == 0 {
-		return nil, fmt.Errorf("Empty line")
+		return StatusResponse{}, fmt.Errorf("Empty line")
 	}
 	var s string
 
 	if _, err := fmt.Sscanf(line, "+%s\r\n", &s); err != nil {
-		return nil, fmt.Errorf("invalid status ", line)
+		return StatusResponse{}, fmt.Errorf("invalid status ", line)
 	}
-	rsp.S = s
-	return &rsp, nil
+	log.Println("Returning Status ", s)
+
+	return NewStatusResponse(s), nil
 }
 
-func (r *StatusResponse) Write(w *bufio.Writer) error {
-	w.WriteString("-" + r.S)
+func (r StatusResponse) Write(w *bufio.Writer) error {
+	w.WriteString("+" + r.S)
 	w.WriteString("\r\n")
 	w.Flush()
 	return nil
@@ -81,33 +82,33 @@ func (r *StatusResponse) Write(w *bufio.Writer) error {
 /////////////// error response
 // error response
 type ErrorResponse struct {
-	common.Response
 	ErrorString string
 }
 
-func NewErrorResponse(s string) *ErrorResponse {
-	return &ErrorResponse{ErrorString: s}
+func NewErrorResponse(s string) ErrorResponse {
+	return ErrorResponse{ErrorString: s}
 }
 
-func errorResponseParser(r *bufio.Reader) (*ErrorResponse, error) {
-	rsp := ErrorResponse{}
+func (parser redisResponseParser) errorResponseParser() (ErrorResponse, error) {
+	r := parser.r
 	line, err := r.ReadString('\n')
 	if err != nil {
-		return nil, err
+		return ErrorResponse{}, err
 	}
 	if len(line) == 0 {
-		return nil, fmt.Errorf("Empty line")
+		return ErrorResponse{}, fmt.Errorf("Empty line")
 	}
 	var s string
 
 	if _, err := fmt.Sscanf(line, "-%s\r\n", &s); err != nil {
-		return nil, fmt.Errorf("invalid status ", line)
+		return ErrorResponse{}, fmt.Errorf("invalid status ", line)
 	}
-	rsp.ErrorString = s
-	return &rsp, nil
+	log.Println("Returning Error ", s)
+
+	return NewErrorResponse(s), nil
 }
 
-func (r *ErrorResponse) Write(w *bufio.Writer) error {
+func (r ErrorResponse) Write(w *bufio.Writer) error {
 	w.WriteString("-" + r.ErrorString)
 	w.WriteString("\r\n")
 	w.Flush()
@@ -116,131 +117,136 @@ func (r *ErrorResponse) Write(w *bufio.Writer) error {
 
 /////////////// string response
 type StringResponse struct {
-	common.Response
 	String string
 }
 
-func NewStringResponse(s string) *StringResponse {
-	return &StringResponse{String: s}
+func NewStringResponse(s string) StringResponse {
+	return StringResponse{String: s}
 }
 
-func stringResponseParser(r *bufio.Reader) (*StringResponse, error) {
-	rsp := StringResponse{}
+func (parser redisResponseParser) stringResponseParser() (StringResponse, error) {
+	r := parser.r
 	line, err := r.ReadString('\n')
 	if err != nil {
-		return nil, err
+		return StringResponse{}, err
 	}
 	if len(line) == 0 {
-		return nil, fmt.Errorf("Empty line")
+		return StringResponse{}, fmt.Errorf("Empty line")
 	}
 	var length int
 
 	if _, err := fmt.Sscanf(line, "$%d\r\n", &length); err != nil {
-		return nil, fmt.Errorf("invalid length for string ", line, err)
+		return StringResponse{}, fmt.Errorf("invalid length for string ", line, err)
 	}
 
 	var s string
 	line, err = r.ReadString('\n')
 	if err != nil {
-		return nil, err
+		return StringResponse{}, err
 	}
 	if len(line) == 0 {
-		return nil, fmt.Errorf("Empty line")
+		return StringResponse{}, fmt.Errorf("Empty line")
 	}
 
 	if _, err := fmt.Sscanf(line, "%s\r\n", &s); err != nil {
-		return nil, fmt.Errorf("invalid length for string ", line, err)
+		return StringResponse{}, fmt.Errorf("invalid length for string ", line, err)
 	}
-	rsp.String = s
-	return &rsp, nil
+	log.Println("Returning String ", s)
+	return NewStringResponse(s), nil
 }
 
-func (r *StringResponse) Write(w *bufio.Writer) error {
-	w.WriteString("-" + r.String)
-	w.WriteString("\r\n")
+func (r StringResponse) Write(w *bufio.Writer) error {
+	w.WriteString("$" + strconv.Itoa(len(r.String)))
+	w.WriteString("\r\n" + r.String + "\r\n")
 	w.Flush()
 	return nil
 }
 
 //////////////// array response
 type ArrayResponse struct {
-	common.Response
-	Args [][]byte
+	elems []common.Response
 }
 
-func (r *ArrayResponse) Write(w *bufio.Writer) error {
+func (r ArrayResponse) Write(w *bufio.Writer) error {
 	w.WriteByte('*')
-	w.WriteString(strconv.Itoa(len(r.Args)))
+	w.WriteString(strconv.Itoa(len(r.elems)))
 	w.WriteString("\r\n")
-	for _, i := range r.Args {
-		w.WriteByte('$')
-		w.WriteString(strconv.Itoa(len(i)))
-		w.WriteString("\r\n")
-		w.Write(i)
-		w.WriteString("\r\n")
+	for _, i := range r.elems {
+		i.Write(w)
+		//w.WriteByte('$')
+		//w.WriteString(strconv.Itoa(len(i)))
+		//w.WriteString("\r\n")
+		//w.Write(i)
+		//w.WriteString("\r\n")
 	}
 	w.Flush()
 	return nil
 }
 
-func (r *ArrayResponse) AppendArgs(arg []byte) {
-	r.Args = append(r.Args, arg)
+func (r ArrayResponse) AppendArgs(elem common.Response) {
+	r.elems = append(r.elems, elem)
 }
 
-func NewArrayResponse() *ArrayResponse {
-	r := new(ArrayResponse)
-	return r
+func NewArrayResponse() ArrayResponse {
+	return ArrayResponse{}
 }
 
 //TODO: The array response can have different types of elements in it
 // For example it could be array with few integers, some strings etc.
-func arrayResponseParser(r *bufio.Reader) (*ArrayResponse, error) {
-	rsp := ArrayResponse{}
+func (parser redisResponseParser) arrayResponseParser() (ArrayResponse, error) {
+	rsp := NewArrayResponse()
+	r := parser.r
 	line, err := r.ReadString('\n')
 	if err != nil {
-		return nil, err
+		return ArrayResponse{}, err
 	}
 	if len(line) == 0 {
-		return nil, fmt.Errorf("Empty line")
+		return ArrayResponse{}, fmt.Errorf("Empty line")
 	}
 	var num int
 
 	if _, err := fmt.Sscanf(line, "*%d\r\n", &num); err != nil {
-		return nil, fmt.Errorf("invalid length for array ", line, err)
+		return ArrayResponse{}, fmt.Errorf("invalid length for array ", line, err)
 	}
-	rsp.Args = make([][]byte, num)
+	rsp.elems = make([]common.Response, num)
 	for i := 0; i < num; i += 1 {
-		if rsp.Args[i], err = readArgument(r); err != nil {
-			return nil, err
+		rsp.elems[i], err = parser.GetNextMessage()
+		//if rsp.elems[i], err = readArgument(r); err != nil {
+		if err != nil {
+			log.Println("Received error ", err)
+			return ArrayResponse{}, err
 		}
+		//rsp.AppendArgs(elem.(common.Response))
 	}
-	return &rsp, nil
+	return rsp, nil
 }
 
 // Redis Response Parser
-type RedisResponseParser struct {
+type redisResponseParser struct {
 	r *bufio.Reader
 }
 
-func NewRedisResponseParser(r *bufio.Reader) RedisResponseParser {
-	return RedisResponseParser{r: r}
+func newRedisResponseParser(r *bufio.Reader) redisResponseParser {
+	return redisResponseParser{r: r}
 }
 
-func (parser RedisResponseParser) GetNextMessage() (common.Message, error) {
+func (parser redisResponseParser) GetNextMessage() (common.Message, error) {
 	// peek first byte
 	b, err := parser.r.Peek(1)
 	if err != nil {
 		return nil, fmt.Errorf("received error", err, " first byte ", b[0])
 	}
 	switch b[0] {
+	case '$':
+		return parser.stringResponseParser()
 	case '+':
-		return statusResponseParser(parser.r)
+		return parser.statusResponseParser()
 	case ':':
-		return integerResponseParser(parser.r)
+		return parser.integerResponseParser()
 	case '-':
-		return errorResponseParser(parser.r)
+		return parser.errorResponseParser()
 	case '*':
-		return arrayResponseParser(parser.r)
+		return parser.arrayResponseParser()
 
 	}
 

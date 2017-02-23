@@ -3,8 +3,8 @@ package topology
 import "strings"
 
 type Datacenter struct {
-	name	string
-	rackMap	rackMap
+	name    string
+	rackMap rackMap
 }
 
 type dcMap struct {
@@ -24,12 +24,12 @@ func (m dcMap) get(dcName string) (b Datacenter, ok bool) {
 	return
 }
 
-func dc_get_or_create_rack(dc Datacenter, rack_name string) (Rack) {
+func dc_get_or_create_rack(dc Datacenter, rack_name string) Rack {
 	rack, ok := dc.rackMap.get(rack_name)
 	if ok == true {
 		return rack
 	}
-	rack = Rack{name:rack_name, nodeMap:newNodeMap()}
+	rack = Rack{name: rack_name, nodeMap: newNodeMap()}
 	dc.rackMap.add(rack)
 	return rack
 }

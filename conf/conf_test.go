@@ -1,9 +1,9 @@
 package conf
 
 import (
-	"testing"
 	"io/ioutil"
 	"path/filepath"
+	"testing"
 )
 
 func TestParseConfFiles(t *testing.T) {

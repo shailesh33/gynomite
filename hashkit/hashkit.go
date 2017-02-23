@@ -1,9 +1,10 @@
 package hashkit
 
 import (
-	"log"
 	"errors"
+	"log"
 )
+
 type HashType int
 
 const (

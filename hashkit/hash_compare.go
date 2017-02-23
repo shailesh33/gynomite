@@ -2,7 +2,6 @@ package hashkit
 
 // This is a file test hash function really
 
-
 /*
 #include <stdio.h>
 #include <string.h>
@@ -54,11 +53,11 @@ unsigned int hash(const char *key, size_t length) {
 */
 import "C"
 import (
-	"testing"
 	"fmt"
-	"unsafe"
 	"math/rand"
+	"testing"
 	"time"
+	"unsafe"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -68,7 +67,7 @@ func init() {
 }
 
 func getRandomKey() []byte {
-	keyLen := rand.Intn(1023) + 1; // Add 1 for 0 sized keyLen
+	keyLen := rand.Intn(1023) + 1 // Add 1 for 0 sized keyLen
 	key := make([]byte, keyLen)
 	for j := 0; j < keyLen; j++ {
 		key[j] = letterBytes[rand.Intn(len(letterBytes))]
@@ -78,7 +77,7 @@ func getRandomKey() []byte {
 
 func testHashMurmur(t *testing.T) {
 	t.Logf("Staring test")
-	for i:=0; i< 1000000; i++ {
+	for i := 0; i < 1000000; i++ {
 
 		// Generate key
 		key := getRandomKey()
