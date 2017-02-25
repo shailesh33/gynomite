@@ -8,12 +8,38 @@ import (
 	"strconv"
 )
 
+type nilResponse struct {
+}
+
+func newNilResponse() nilResponse {
+	return nilResponse{}
+}
+
+func (r nilResponse) Write(w *bufio.Writer) error {
+	w.WriteString("$-1\r\n")
+	w.Flush()
+	return nil
+}
+
+func (parser redisResponseParser) nilResponseParser() (nilResponse, error) {
+	r := parser.r
+	line, err := r.ReadString('\n')
+	if err != nil {
+		return newNilResponse(), err
+	}
+
+	if line != "$-1\r\n" {
+		return newNilResponse(), fmt.Errorf("Received invalid line while parsing nil response %s", line)
+	}
+	return newNilResponse(), nil
+}
+
 /////////// integer response
 type integerResponse struct {
 	I int
 }
 
-func NewIntegerResponse(i int) integerResponse {
+func newIntegerResponse(i int) integerResponse {
 	return integerResponse{I: i}
 }
 
@@ -39,9 +65,8 @@ func (parser redisResponseParser) integerResponseParser() (integerResponse, erro
 	if _, err := fmt.Sscanf(line, ":%d\r\n", &i); err != nil {
 		return integerResponse{}, fmt.Errorf("invalid status ", line)
 	}
-	log.Println("Returning Integer ", i)
 
-	return NewIntegerResponse(i), nil
+	return newIntegerResponse(i), nil
 }
 
 //////////// Status response
@@ -67,7 +92,6 @@ func (parser redisResponseParser) statusResponseParser() (StatusResponse, error)
 	if _, err := fmt.Sscanf(line, "+%s\r\n", &s); err != nil {
 		return StatusResponse{}, fmt.Errorf("invalid status ", line)
 	}
-	log.Println("Returning Status ", s)
 
 	return NewStatusResponse(s), nil
 }
@@ -103,7 +127,6 @@ func (parser redisResponseParser) errorResponseParser() (ErrorResponse, error) {
 	if _, err := fmt.Sscanf(line, "-%s\r\n", &s); err != nil {
 		return ErrorResponse{}, fmt.Errorf("invalid status ", line)
 	}
-	log.Println("Returning Error ", s)
 
 	return NewErrorResponse(s), nil
 }
@@ -127,6 +150,7 @@ func NewStringResponse(s string) StringResponse {
 func (parser redisResponseParser) stringResponseParser() (StringResponse, error) {
 	r := parser.r
 	line, err := r.ReadString('\n')
+
 	if err != nil {
 		return StringResponse{}, err
 	}
@@ -151,7 +175,6 @@ func (parser redisResponseParser) stringResponseParser() (StringResponse, error)
 	if _, err := fmt.Sscanf(line, "%s\r\n", &s); err != nil {
 		return StringResponse{}, fmt.Errorf("invalid length for string ", line, err)
 	}
-	log.Println("Returning String ", s)
 	return NewStringResponse(s), nil
 }
 
@@ -226,7 +249,7 @@ type redisResponseParser struct {
 	r *bufio.Reader
 }
 
-func newRedisResponseParser(r *bufio.Reader) redisResponseParser {
+func NewRedisResponseParser(r *bufio.Reader) redisResponseParser {
 	return redisResponseParser{r: r}
 }
 
@@ -238,6 +261,10 @@ func (parser redisResponseParser) GetNextMessage() (common.Message, error) {
 	}
 	switch b[0] {
 	case '$':
+		b, err = parser.r.Peek(2)
+		if b[1] == '-' {
+			return parser.nilResponseParser()
+		}
 		return parser.stringResponseParser()
 	case '+':
 		return parser.statusResponseParser()

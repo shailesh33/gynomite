@@ -29,7 +29,6 @@ func NewDataStoreConn(conn net.Conn) (DataStoreConn, error) {
 func (c DataStoreConn) Handle(r common.Message) error {
 	rsp := r.(common.Response)
 
-	log.Println("Handling ", rsp)
 	m := <-c.outQueue
 	req := m.(common.Request)
 	c_conn := (req.GetContext()).(common.Conn)
@@ -61,7 +60,6 @@ func (c DataStoreConn) Loop() error {
 			log.Println("Datastore: Failed to get next message", err)
 			return err
 		}
-		log.Println("Received message ", r)
 		c.Handle(r)
 	}
 	return nil

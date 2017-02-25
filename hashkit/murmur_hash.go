@@ -1,6 +1,6 @@
 package hashkit
 
-func hash_murmur(key string) uint32 {
+func hash_murmur(key []byte) uint32 {
 	/*
 			 * 'm' and 'r' are mixing constants generated offline.  They're not
 		 	 * really 'magic', they just happen to work well.
@@ -12,7 +12,8 @@ func hash_murmur(key string) uint32 {
 
 	var m uint32 = 0x5bd1e995
 	const r uint32 = 24
-	subArr := ""
+	var subArr []byte
+
 	if len(key) > 4 {
 		subArr = key[0:4]
 	} else {

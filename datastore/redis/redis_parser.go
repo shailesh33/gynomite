@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"bitbucket.org/shailesh33/dynomite/common"
-	"log"
+	"bitbucket.org/shailesh33/dynomite/hashkit"
 	"strconv"
 )
 
@@ -16,6 +16,15 @@ type RedisRequest struct {
 	requestType common.RequestType
 	ctx         common.Context
 	Args        [][]byte
+	hashCode    uint32
+}
+
+func (r RedisRequest) GetName() string {
+	return r.Name
+}
+
+func (r RedisRequest) GetHashCode() uint32 {
+	return r.hashCode
 }
 
 func (r RedisRequest) Write(w *bufio.Writer) error {
@@ -27,7 +36,6 @@ func (r RedisRequest) Write(w *bufio.Writer) error {
 	w.WriteString("\r\n")
 	w.WriteString(r.Name)
 	w.WriteString("\r\n")
-	log.Println("Writing", r)
 	for _, i := range r.Args {
 		w.WriteByte('$')
 		w.WriteString(strconv.Itoa(len(i)))
@@ -43,8 +51,19 @@ func (r RedisRequest) GetType() common.RequestType {
 	return r.requestType
 }
 
+func (r RedisRequest) GetKey() []byte {
+	if len(r.Args) > 0 {
+		return r.Args[0]
+	}
+	return []byte{}
+}
+
 func (r RedisRequest) GetContext() common.Context {
 	return r.ctx
+}
+
+func (r RedisRequest) String() string {
+	return fmt.Sprintf("%s '%s' %d", r.GetName(), r.GetKey(), r.GetHashCode())
 }
 
 // Redis request Parser
@@ -53,7 +72,7 @@ type RedisRequestParser struct {
 	owner common.Context
 }
 
-func newRedisRequestParser(r *bufio.Reader, owner common.Context) RedisRequestParser {
+func NewRedisRequestParser(r *bufio.Reader, owner common.Context) RedisRequestParser {
 	return RedisRequestParser{r: r, owner: owner}
 }
 
@@ -89,10 +108,13 @@ func (parser RedisRequestParser) GetNextMessage() (common.Message, error) {
 		}
 	}
 
-	return RedisRequest{
+	req := RedisRequest{
 		requestType: GetRequestType(string(firstArg)),
 		Name:        strings.ToUpper(string(firstArg)),
 		ctx:         parser.owner,
 		Args:        args,
-	}, nil
+	}
+
+	req.hashCode = hashkit.GetHash(req.GetKey())
+	return req, nil
 }

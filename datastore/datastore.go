@@ -3,6 +3,7 @@ package datastore
 import (
 	"bitbucket.org/shailesh33/dynomite/common"
 	"bitbucket.org/shailesh33/dynomite/conf"
+	"bitbucket.org/shailesh33/dynomite/datastore/redis"
 	"bufio"
 	"fmt"
 	"log"
@@ -77,7 +78,7 @@ func GetDatastoreConn() DataStoreConn {
 func NewRequestParser(reader *bufio.Reader, owner common.Context) common.Parser {
 	switch gdatastore {
 	case REDIS:
-		return newRedisRequestParser(reader, owner)
+		return datastore.NewRedisRequestParser(reader, owner)
 	}
 	log.Panicln("Unsupported datastore")
 	return nil
@@ -86,7 +87,7 @@ func NewRequestParser(reader *bufio.Reader, owner common.Context) common.Parser 
 func NewResponseParser(reader *bufio.Reader) common.Parser {
 	switch gdatastore {
 	case REDIS:
-		return newRedisResponseParser(reader)
+		return datastore.NewRedisResponseParser(reader)
 	}
 	log.Panicln("Unsupported datastore")
 	return nil

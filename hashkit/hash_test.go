@@ -6,5 +6,5 @@ import (
 
 func TestHashMurmur(t *testing.T) {
 	t.Logf("Staring")
-	//testHashMurmur(t)
+	testHashMurmur(t)
 }

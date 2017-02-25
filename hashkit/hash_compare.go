@@ -84,7 +84,7 @@ func testHashMurmur(t *testing.T) {
 		ccp := (*C.char)(unsafe.Pointer(&key[0]))
 
 		// Calculate hashes
-		goHash := hash_murmur(string(key))
+		goHash := hash_murmur(key)
 		cHash := uint32(C.hash(ccp, C.size_t(len(key))))
 
 		if goHash != cHash {

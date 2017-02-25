@@ -27,11 +27,13 @@ func NewClientConnHandler(conn net.Conn) (ClientConn, error) {
 
 // handle the request read from the client
 func (c ClientConn) Handle(r common.Message) error {
-	//req := r.(common.Request)
+	req := r.(common.Request)
 	//log.Println("Client: Handling ", datastore.RequestTypeDesc[req.GetType()])
-	c.outQueue <- r
+	c.outQueue <- req
 	datastoreConn := datastore.GetDatastoreConn()
-	datastoreConn.Forward(r)
+	log.Printf("Client Received %s", req)
+
+	datastoreConn.Forward(req)
 	return nil
 }
 
@@ -41,7 +43,7 @@ func (c *ClientConn) forwardedResponseHandle() error {
 
 		//log.Println("received a message from inchan", m)
 		req := <-c.outQueue
-		log.Println("Received Response for request ", req)
+		log.Printf("Received Response for request %s", req)
 		rsp.Write(c.Writer)
 	}
 	return nil

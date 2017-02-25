@@ -2,10 +2,9 @@ package datastore
 
 import (
 	"bitbucket.org/shailesh33/dynomite/common"
-	"strings"
 	"log"
+	"strings"
 )
-
 
 // Redis Request Types supported
 const (

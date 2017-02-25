@@ -20,6 +20,10 @@ type Request interface {
 	Message
 	GetContext() Context
 	GetType() RequestType
+	GetName() string
+	GetKey() []byte
+	GetHashCode() uint32
+	String() string
 }
 
 // This is a response, could be a datastore response or a dnode response

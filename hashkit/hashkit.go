@@ -13,7 +13,7 @@ const (
 
 var hashType HashType
 
-func GetHash(key string) uint32 {
+func GetHash(key []byte) uint32 {
 	switch hashType {
 	case HASH_MURMUR:
 		return hash_murmur(key)
