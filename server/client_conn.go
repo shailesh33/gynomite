@@ -11,36 +11,38 @@ import (
 
 type ClientConn struct {
 	//common.Conn
-	conn        net.Conn
-	Writer      *bufio.Writer
-	forwardChan chan common.Message
-	outQueue    chan common.Message
-	quit        chan int
+	conn         net.Conn
+	Writer       *bufio.Writer
+	forwardChan  chan common.Message
+	outQueue     chan common.Message
+	quit         chan int
+	msgForwarder common.MsgForwarder
 }
 
 func (c ClientConn) String() string {
 	return fmt.Sprintf("<Client connection from %s>", c.conn.RemoteAddr())
 }
 
-func NewClientConnHandler(conn net.Conn) (ClientConn, error) {
+func NewClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (ClientConn, error) {
 	log.Println("Creating new client conn")
 	return ClientConn{
 		conn:        conn,
 		Writer:      bufio.NewWriter(conn),
 		forwardChan: make(chan common.Message, 20000),
 		outQueue:    make(chan common.Message, 20000),
-		quit:        make(chan int)}, nil
+		quit:        make(chan int), msgForwarder: msgForwarder}, nil
 }
 
 // handle the request read from the client
 func (c ClientConn) Handle(r common.Message) error {
 	req := r.(common.Request)
-	//log.Println("Client: Handling ", datastore.RequestTypeDesc[req.GetType()])
 	c.outQueue <- req
-	datastoreConn := datastore.GetDatastoreConn()
-	log.Printf("Client Received %s", req)
+	c.msgForwarder.MsgForward(req)
 
-	datastoreConn.Forward(req)
+	//dataStoreConn := datastore.GetDatastoreConn()
+	//log.Printf("Client Received %s", req)
+	//
+	//dataStoreConn.Forward(req)
 	return nil
 }
 
@@ -49,7 +51,6 @@ func (c *ClientConn) forwardedResponseHandle() error {
 		select {
 		case m := <-c.forwardChan:
 			rsp := m.(common.Response)
-			//log.Println("received a message from inchan", m)
 			req := <-c.outQueue
 			log.Printf("Received Response for request %s", req)
 			rsp.Write(c.Writer)

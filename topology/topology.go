@@ -1,11 +1,16 @@
 package topology
 
 import (
+	"bitbucket.org/shailesh33/dynomite/common"
 	"bitbucket.org/shailesh33/dynomite/conf"
 	"fmt"
 	"log"
+	"net"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Topology struct {
@@ -14,6 +19,11 @@ type Topology struct {
 	mydatastore_server string
 	dcMap              dcMap
 	localNode          Node
+	listener           net.Listener
+}
+
+func (t Topology) run() error {
+	return nil
 }
 
 func topo_get_or_create_dc(topo Topology, dc_name string) Datacenter {
@@ -26,12 +36,12 @@ func topo_get_or_create_dc(topo Topology, dc_name string) Datacenter {
 	return dc
 }
 
-func Topology_print(t Topology) {
+func (t Topology) Print() {
 	log.Println("DC: " + t.mydc + " Rack: " + t.myrack)
 	for dcname, dc := range t.dcMap.m {
 		for rackname, rack := range dc.rackMap.m {
 			for token, node := range rack.nodeMap.m {
-				log.Println("Peers: " + dcname + " " + rackname + " " + node.addr + ":" + strconv.Itoa(node.port) + " " + token)
+				log.Println("Peers: " + dcname + " " + rackname + " " + node.addr + ":" + strconv.Itoa(node.Port) + " " + token)
 			}
 		}
 	}
@@ -66,7 +76,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	host_port := strings.Split(listen, ":")
 	node.addr = host_port[0]
 	var err error = nil
-	node.port, err = strconv.Atoi(host_port[1])
+	node.Port, err = strconv.Atoi(host_port[1])
 	if err != nil {
 		return Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
@@ -80,7 +90,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 		}
 		var peer Node
 		peer.addr = parts[0]
-		peer.port, err = strconv.Atoi(parts[1])
+		peer.Port, err = strconv.Atoi(parts[1])
 		if err != nil {
 			return Topology{}, fmt.Errorf("Invalid port in peer option %s", p)
 		}
@@ -96,6 +106,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 			peer.is_same_rack = true
 		}
 		peer.is_local = false
+		peer.state = NODE_DOWN
 
 		dc := topo_get_or_create_dc(topo, peer.dc_name)
 		rack := dc_get_or_create_rack(dc, peer.rack_name)
@@ -109,5 +120,61 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 		rack.nodeMap.add(peer)
 
 	}
+
 	return topo, nil
+}
+
+func (t Topology) connect(c chan<- int) error {
+	var wg sync.WaitGroup
+	for _, dc := range t.dcMap.m {
+		for _, rack := range dc.rackMap.m {
+			for _, node := range rack.nodeMap.m {
+				wg.Add(1)
+				go func(n Node) {
+					n.connect()
+					wg.Done()
+				}(node)
+			}
+		}
+	}
+	log.Println("waiting for connections to peer")
+	wg.Wait()
+	log.Println("Done waiting for connections to peer")
+
+	c <- 1
+	return nil
+}
+
+func (t Topology) Start() error {
+	var err error
+	t.listener, err = net.Listen("tcp", net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)))
+	if err != nil {
+		log.Println("Error listening on", t.localNode.addr, t.localNode.Port, err.Error())
+		os.Exit(1)
+	}
+	log.Println("Listening on ", net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)))
+	t.Print()
+	c := make(chan int, 1)
+	t.connect(c)
+	t.Print()
+
+	select {
+	case <-c:
+		log.Println("All nodes connected successfully")
+	case <-time.After(5 * time.Second):
+	}
+	log.Println("After select")
+	//go t.run()
+	return nil
+}
+
+func (t Topology) MsgForward(m common.Message) error {
+	for _, dc := range t.dcMap.m {
+		for _, rack := range dc.rackMap.m {
+			for _, node := range rack.nodeMap.m {
+				go node.MsgForward(m)
+			}
+		}
+	}
+	return nil
 }

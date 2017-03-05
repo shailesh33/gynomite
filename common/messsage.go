@@ -45,3 +45,7 @@ type RequestParser interface {
 type ResponseParser interface {
 	GetNextResponse() (Response, error)
 }
+
+type MsgForwarder interface {
+	MsgForward(Message) error
+}

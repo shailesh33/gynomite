@@ -47,6 +47,9 @@ func init() {
 }
 
 func main() {
+
+	log.SetFlags(log.Lshortfile | log.Lmicroseconds)
+
 	conf, err := conf.Parse(confFile)
 	if err != nil {
 		fmt.Println("Failed to parse file", err)
@@ -65,7 +68,8 @@ func main() {
 	log.Println("Using Datastore at ", ds)
 
 	topo, err := topology.InitTopology(conf)
-	topology.Topology_print(topo)
+	topo.Print()
+	topo.Start()
 
 	err = datastore.InitDataStoreConn(ds)
 	if err != nil {
@@ -87,12 +91,12 @@ func main() {
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleClient(conn)
+		go handleClient(conn, topo)
 	}
 }
 
-func handleClient(clientConn net.Conn) {
-	c, err := server.NewClientConnHandler(clientConn)
+func handleClient(clientConn net.Conn, topo topology.Topology) {
+	c, err := server.NewClientConnHandler(clientConn, topo)
 	if err != nil {
 		log.Println("Failed to handle client ", err)
 	}
