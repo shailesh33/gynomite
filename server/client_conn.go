@@ -10,7 +10,6 @@ import (
 )
 
 type ClientConn struct {
-	//common.Conn
 	conn         net.Conn
 	Writer       *bufio.Writer
 	forwardChan  chan common.Message
@@ -33,26 +32,13 @@ func NewClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (Clie
 		quit:        make(chan int), msgForwarder: msgForwarder}, nil
 }
 
-// handle the request read from the client
-func (c ClientConn) Handle(r common.Message) error {
-	req := r.(common.Request)
-	c.outQueue <- req
-	c.msgForwarder.MsgForward(req)
-
-	//dataStoreConn := datastore.GetDatastoreConn()
-	//log.Printf("Client Received %s", req)
-	//
-	//dataStoreConn.Forward(req)
-	return nil
-}
-
 func (c *ClientConn) forwardedResponseHandle() error {
 	for {
 		select {
 		case m := <-c.forwardChan:
 			rsp := m.(common.Response)
-			req := <-c.outQueue
-			log.Printf("Received Response for request %s", req)
+			<-c.outQueue
+			//log.Printf("Received Response for request %s", req)
 			rsp.Write(c.Writer)
 		case <-c.quit:
 			log.Println("Client loop exiting", c)
@@ -61,7 +47,7 @@ func (c *ClientConn) forwardedResponseHandle() error {
 	return nil
 }
 
-func (c ClientConn) Loop() error {
+func (c ClientConn) Run() error {
 	parser := datastore.NewRequestParser(bufio.NewReader(c.conn), c)
 
 	go c.forwardedResponseHandle()
@@ -73,7 +59,8 @@ func (c ClientConn) Loop() error {
 			c.quit <- 1
 			return err
 		}
-		c.Handle(r)
+		c.outQueue <- r
+		c.msgForwarder.MsgForward(r)
 	}
 	return nil
 }

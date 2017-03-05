@@ -67,7 +67,7 @@ func InitDataStoreConn(d Datastore) error {
 		return err
 	}
 	log.Println("Connected to datastore ", d)
-	go gDatastoreConn.Loop()
+	go gDatastoreConn.Run()
 	return nil
 }
 

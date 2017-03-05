@@ -11,9 +11,9 @@ import (
 )
 
 type RedisRequest struct {
-	//common.Request
 	Name        string
 	requestType common.RequestType
+	override	common.RoutingOverride
 	ctx         common.Context
 	Args        [][]byte
 	hashCode    uint32
@@ -25,6 +25,10 @@ func (r RedisRequest) GetName() string {
 
 func (r RedisRequest) GetHashCode() uint32 {
 	return r.hashCode
+}
+
+func (r RedisRequest) GetRoutingOverride() common.RoutingOverride {
+	return r.override
 }
 
 func (r RedisRequest) Write(w *bufio.Writer) error {
@@ -107,10 +111,11 @@ func (parser RedisRequestParser) GetNextMessage() (common.Message, error) {
 			return nil, err
 		}
 	}
-
+	var requestType common.RequestType = GetRequestString(string(firstArg))
 	req := RedisRequest{
-		requestType: GetRequestType(string(firstArg)),
+		requestType: requestType,
 		Name:        strings.ToUpper(string(firstArg)),
+		override:    GetRequestOverride(requestType),
 		ctx:         parser.owner,
 		Args:        args,
 	}

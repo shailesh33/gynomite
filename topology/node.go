@@ -71,9 +71,12 @@ func (n Node) connect() error {
 		}
 		log.Println("Connected to ", n.addr, n.Port)
 		n.state = NODE_CONNECTED
+		tcpConn := n.conn.(*net.TCPConn)
+		tcpConn.SetKeepAlive(true)
+		tcpConn.SetKeepAlivePeriod(30 * time.Second)
+
 		return nil
 	}
-	//go n.connect()
 	return err
 }
 
@@ -82,7 +85,7 @@ func (n Node) MsgForward(m common.Message) {
 		req := m.(common.Request)
 		// forward to datastore connection
 		dataStoreConn := datastore.GetDatastoreConn()
-		log.Printf("Node Received %s", req)
+		//log.Printf("Node Received %s", req)
 
 		dataStoreConn.Forward(req)
 		return

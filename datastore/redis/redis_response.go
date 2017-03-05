@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"io"
 )
 
 type nilResponse struct {
@@ -140,11 +141,11 @@ func (r ErrorResponse) Write(w *bufio.Writer) error {
 
 /////////////// string response
 type StringResponse struct {
-	String string
+	data []byte
 }
 
-func NewStringResponse(s string) StringResponse {
-	return StringResponse{String: s}
+func NewStringResponse(b []byte) StringResponse {
+	return StringResponse{data: b}
 }
 
 func (parser redisResponseParser) stringResponseParser() (StringResponse, error) {
@@ -163,24 +164,44 @@ func (parser redisResponseParser) stringResponseParser() (StringResponse, error)
 		return StringResponse{}, fmt.Errorf("invalid length for string ", line, err)
 	}
 
-	var s string
-	line, err = r.ReadString('\n')
-	if err != nil {
+	log.Println("reading", length, "characters")
+
+	b := make([]byte, length)
+	read, err := io.ReadFull(r, b)
+	if (err != nil) {
+		log.Println("Failed to read full", length, "bytes:", err)
 		return StringResponse{}, err
+
 	}
-	if len(line) == 0 {
-		return StringResponse{}, fmt.Errorf("Empty line")
+	if (read != length) {
+		log.Println("Failed to read full", length, "bytes")
+		return StringResponse{}, fmt.Errorf("Read only ", read,"bytes from stream out of ", length)
+	}
+	c, err := r.ReadByte();
+	if err != nil {
+		return StringResponse{}, fmt.Errorf("while reading \\r", err)
+
+	}
+	if c != '\r' {
+		return StringResponse{}, fmt.Errorf("Expected \\r")
 	}
 
-	if _, err := fmt.Sscanf(line, "%s\r\n", &s); err != nil {
-		return StringResponse{}, fmt.Errorf("invalid length for string ", line, err)
+	c, err = r.ReadByte();
+	if err != nil {
+		return StringResponse{}, fmt.Errorf("while reading \\n", err)
+
 	}
-	return NewStringResponse(s), nil
+	if c != '\n' {
+		return StringResponse{}, fmt.Errorf("Expected \\n")
+	}
+
+	return NewStringResponse(b), nil
 }
 
 func (r StringResponse) Write(w *bufio.Writer) error {
-	w.WriteString("$" + strconv.Itoa(len(r.String)))
-	w.WriteString("\r\n" + r.String + "\r\n")
+	w.WriteString("$" + strconv.Itoa(len(r.data)) + "\r\n")
+	w.Write(r.data)
+	w.WriteString("\r\n")
 	w.Flush()
 	return nil
 }
@@ -196,11 +217,6 @@ func (r ArrayResponse) Write(w *bufio.Writer) error {
 	w.WriteString("\r\n")
 	for _, i := range r.elems {
 		i.Write(w)
-		//w.WriteByte('$')
-		//w.WriteString(strconv.Itoa(len(i)))
-		//w.WriteString("\r\n")
-		//w.Write(i)
-		//w.WriteString("\r\n")
 	}
 	w.Flush()
 	return nil

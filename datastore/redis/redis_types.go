@@ -12,14 +12,19 @@ const (
 	REQUEST_REDIS_GET
 	REQUEST_REDIS_SET
 	REQUEST_REDIS_COMMAND
+	REQUEST_REDIS_INFO
 )
-
+type requestProperties struct {
+	name string
+	override common.RoutingOverride
+}
 // Redis Request type to protocol string Map
-var RequestTypeDesc = [...]string{
-	REQUEST_UNSUPPORTED:   "REQUEST_UNKNOWN",
-	REQUEST_REDIS_GET:     "GET",
-	REQUEST_REDIS_SET:     "SET",
-	REQUEST_REDIS_COMMAND: "COMMAND",
+var RequestTypeDesc = [...]requestProperties{
+	REQUEST_UNSUPPORTED:   requestProperties{name:"REQUEST_UNKNOWN",override:common.ROUTING_NORMAL},
+	REQUEST_REDIS_GET:     requestProperties{name:"GET",override:common.ROUTING_NORMAL},
+	REQUEST_REDIS_SET:     requestProperties{name:"SET", override:common.ROUTING_ALL_DCS_TOKEN_OWNER},
+	REQUEST_REDIS_COMMAND: requestProperties{name:"COMMAND", override:common.ROUTING_LOCAL_NODE_ONLY},
+	REQUEST_REDIS_INFO: 	requestProperties{name:"INFO", override:common.ROUTING_LOCAL_NODE_ONLY},
 }
 
 // Helper to map a protocol string to its internal request type
@@ -49,10 +54,14 @@ var gRM requestStringMapper = newRequestStringMapper()
 func init() {
 	for i, v := range RequestTypeDesc {
 		log.Println("Adding ", v, common.RequestType(i))
-		gRM.add(v, common.RequestType(i))
+		gRM.add(v.name, common.RequestType(i))
 	}
 }
 
-func GetRequestType(r string) common.RequestType {
+func GetRequestString(r string) common.RequestType {
 	return gRM.get(r)
+}
+
+func GetRequestOverride(t common.RequestType) common.RoutingOverride {
+	return RequestTypeDesc[t].override
 }

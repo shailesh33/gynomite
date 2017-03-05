@@ -6,6 +6,17 @@ import (
 
 type RequestType int
 
+type RoutingOverride int
+
+const (
+	ROUTING_NORMAL RoutingOverride = iota
+	ROUTING_LOCAL_NODE_ONLY
+	ROUTING_LOCAL_RACK_TOKEN_OWNER
+	ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER
+	ROUTING_ALL_DCS_TOKEN_OWNER
+	ROUTING_ALL_DCS_ALL_NODES
+)
+
 //////////////////////////
 // This is a generic message that flow in the system
 type Message interface {
@@ -24,6 +35,7 @@ type Request interface {
 	GetKey() []byte
 	GetHashCode() uint32
 	String() string
+	GetRoutingOverride() RoutingOverride
 }
 
 // This is a response, could be a datastore response or a dnode response

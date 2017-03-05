@@ -14,6 +14,8 @@ import (
 	"bitbucket.org/shailesh33/dynomite/hashkit"
 	"bitbucket.org/shailesh33/dynomite/server"
 	"bitbucket.org/shailesh33/dynomite/topology"
+	"io"
+	"runtime"
 )
 
 var (
@@ -37,7 +39,7 @@ var (
 func init() {
 	flag.StringVar(&confFile, "c", "conf/dynomite.yml", "set configuration file (default: conf/dynomite.yml)")
 	flag.IntVar(&verbosity, "v", 5, "set logging level (default 5, min: 0, max:11")
-	flag.StringVar(&logFileName, "o", "dynomite.log", "set logging file (default: stderr)")
+	flag.StringVar(&logFileName, "o", "dynomite.log", "set logging file (default: stdout)")
 	flag.BoolVar(&daemonize, "d", false, "run as a daemon")
 	flag.BoolVar(&testConf, "t", false, "test configuration for syntax errors and exit")
 	flag.BoolVar(&version, "V", false, "show version and exit")
@@ -47,7 +49,16 @@ func init() {
 }
 
 func main() {
+	runtime.GOMAXPROCS(1)
+	if (len(logFileName) > 0) {
+		file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatalln("Failed to open log file", logFileName, ":", err)
+		}
+		multi := io.MultiWriter(file, os.Stdout)
 
+		log.SetOutput(multi)
+	}
 	log.SetFlags(log.Lshortfile | log.Lmicroseconds)
 
 	conf, err := conf.Parse(confFile)
@@ -100,10 +111,5 @@ func handleClient(clientConn net.Conn, topo topology.Topology) {
 	if err != nil {
 		log.Println("Failed to handle client ", err)
 	}
-	c.Loop()
-	//
-	//tcpConn := clientConn.(*net.TCPConn)
-	//tcpConn.SetKeepAlive(true)
-	//tcpConn.SetKeepAlivePeriod(30 * time.Second)
-
+	c.Run()
 }
