@@ -12,11 +12,13 @@ import (
 
 type RedisRequest struct {
 	Name        string
-	requestType common.RequestType
-	override	common.RoutingOverride
+	msgType     common.MessageType
+	requestType RedisRequestType
+	override    common.RoutingOverride
 	ctx         common.Context
 	Args        [][]byte
 	hashCode    uint32
+	done        chan common.Response
 }
 
 func (r RedisRequest) GetName() string {
@@ -51,8 +53,8 @@ func (r RedisRequest) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func (r RedisRequest) GetType() common.RequestType {
-	return r.requestType
+func (r RedisRequest) GetType() common.MessageType {
+	return r.msgType
 }
 
 func (r RedisRequest) GetKey() []byte {
@@ -70,6 +72,17 @@ func (r RedisRequest) String() string {
 	return fmt.Sprintf("%s '%s' %d", r.GetName(), r.GetKey(), r.GetHashCode())
 }
 
+func (r RedisRequest) Done() common.Response {
+	// TODO: Implement some timeout here
+	rsp := <-r.done
+	return rsp
+}
+
+func (r RedisRequest) HandleResponse(rsp common.Response) error {
+	r.done <- rsp
+	return nil
+}
+
 // Redis request Parser
 type RedisRequestParser struct {
 	r     *bufio.Reader
@@ -80,7 +93,7 @@ func NewRedisRequestParser(r *bufio.Reader, owner common.Context) RedisRequestPa
 	return RedisRequestParser{r: r, owner: owner}
 }
 
-func (parser RedisRequestParser) GetNextMessage() (common.Message, error) {
+func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
 	r := parser.r
 	line, err := parser.r.ReadString('\n')
 	if err != nil {
@@ -111,13 +124,19 @@ func (parser RedisRequestParser) GetNextMessage() (common.Message, error) {
 			return nil, err
 		}
 	}
-	var requestType common.RequestType = GetRequestString(string(firstArg))
+	var requestType RedisRequestType = GetRequestTypeFromString(string(firstArg))
+	if requestType == REQUEST_UNSUPPORTED {
+		return nil, fmt.Errorf("Invalid or unsupported request")
+	}
+
 	req := RedisRequest{
+		msgType:     common.REQUEST_DATASTORE,
 		requestType: requestType,
 		Name:        strings.ToUpper(string(firstArg)),
 		override:    GetRequestOverride(requestType),
 		ctx:         parser.owner,
 		Args:        args,
+		done:        make(chan common.Response, 1),
 	}
 
 	req.hashCode = hashkit.GetHash(req.GetKey())

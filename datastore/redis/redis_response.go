@@ -4,9 +4,9 @@ import (
 	"bitbucket.org/shailesh33/dynomite/common"
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"strconv"
-	"io"
 )
 
 type nilResponse struct {
@@ -164,20 +164,18 @@ func (parser redisResponseParser) stringResponseParser() (StringResponse, error)
 		return StringResponse{}, fmt.Errorf("invalid length for string ", line, err)
 	}
 
-	log.Println("reading", length, "characters")
-
 	b := make([]byte, length)
 	read, err := io.ReadFull(r, b)
-	if (err != nil) {
+	if err != nil {
 		log.Println("Failed to read full", length, "bytes:", err)
 		return StringResponse{}, err
 
 	}
-	if (read != length) {
+	if read != length {
 		log.Println("Failed to read full", length, "bytes")
-		return StringResponse{}, fmt.Errorf("Read only ", read,"bytes from stream out of ", length)
+		return StringResponse{}, fmt.Errorf("Read only ", read, "bytes from stream out of ", length)
 	}
-	c, err := r.ReadByte();
+	c, err := r.ReadByte()
 	if err != nil {
 		return StringResponse{}, fmt.Errorf("while reading \\r", err)
 
@@ -186,7 +184,7 @@ func (parser redisResponseParser) stringResponseParser() (StringResponse, error)
 		return StringResponse{}, fmt.Errorf("Expected \\r")
 	}
 
-	c, err = r.ReadByte();
+	c, err = r.ReadByte()
 	if err != nil {
 		return StringResponse{}, fmt.Errorf("while reading \\n", err)
 
@@ -249,7 +247,7 @@ func (parser redisResponseParser) arrayResponseParser() (ArrayResponse, error) {
 	}
 	rsp.elems = make([]common.Response, num)
 	for i := 0; i < num; i += 1 {
-		rsp.elems[i], err = parser.GetNextMessage()
+		rsp.elems[i], err = parser.GetNextResponse()
 		//if rsp.elems[i], err = readArgument(r); err != nil {
 		if err != nil {
 			log.Println("Received error ", err)
@@ -269,7 +267,7 @@ func NewRedisResponseParser(r *bufio.Reader) redisResponseParser {
 	return redisResponseParser{r: r}
 }
 
-func (parser redisResponseParser) GetNextMessage() (common.Message, error) {
+func (parser redisResponseParser) GetNextResponse() (common.Response, error) {
 	// peek first byte
 	b, err := parser.r.Peek(1)
 	if err != nil {

@@ -50,7 +50,7 @@ func init() {
 
 func main() {
 	runtime.GOMAXPROCS(1)
-	if (len(logFileName) > 0) {
+	if len(logFileName) > 0 {
 		file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			log.Fatalln("Failed to open log file", logFileName, ":", err)
@@ -107,6 +107,7 @@ func main() {
 }
 
 func handleClient(clientConn net.Conn, topo topology.Topology) {
+	defer clientConn.Close()
 	c, err := server.NewClientConnHandler(clientConn, topo)
 	if err != nil {
 		log.Println("Failed to handle client ", err)

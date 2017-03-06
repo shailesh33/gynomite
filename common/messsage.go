@@ -4,7 +4,11 @@ import (
 	"bufio"
 )
 
-type RequestType int
+type MessageType int
+
+const (
+	REQUEST_DATASTORE MessageType = iota
+)
 
 type RoutingOverride int
 
@@ -30,22 +34,19 @@ type Context interface {
 type Request interface {
 	Message
 	GetContext() Context
-	GetType() RequestType
+	GetType() MessageType
 	GetName() string
 	GetKey() []byte
 	GetHashCode() uint32
 	String() string
 	GetRoutingOverride() RoutingOverride
+	Done() Response
+	HandleResponse(Response) error
 }
 
 // This is a response, could be a datastore response or a dnode response
 type Response interface {
 	Message
-}
-
-// Parser to parse message
-type Parser interface {
-	GetNextMessage() (Message, error)
 }
 
 // This is an interface that parses request from the stream of data typically from the client.

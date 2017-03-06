@@ -25,10 +25,9 @@ func NewDataStoreConn(conn net.Conn) (DataStoreConn, error) {
 		outQueue:    make(chan common.Message, 20000)}, nil
 }
 
-func (c DataStoreConn) forwardedMsgHandle() error {
+func (c DataStoreConn) forwardRequestsToDatastore() error {
 	var m common.Message
 	for m = range c.forwardChan {
-		//log.Println("Datastore: received a forwarded message from inchan ", m)
 		c.outQueue <- m
 		m.Write(c.Writer)
 	}
@@ -36,28 +35,25 @@ func (c DataStoreConn) forwardedMsgHandle() error {
 }
 
 func (c DataStoreConn) Run() error {
-	log.Printf("Running Looop for Datastore %v", c)
+	log.Printf("Running Loop for Datastore %v", c)
 	parser := NewResponseParser(bufio.NewReader(c.conn))
-	go c.forwardedMsgHandle()
+	go c.forwardRequestsToDatastore()
 	for {
-		var r common.Message
-		r, err := parser.GetNextMessage()
+		rsp, err := parser.GetNextResponse()
 		if err != nil {
 			log.Println("Datastore: Failed to get next message", err)
 			return err
 		}
+
+		// to maintain ordering
 		m := <-c.outQueue
 		req := m.(common.Request)
-		c_conn := (req.GetContext()).(common.Conn)
-
-		// forward the response for the req
-		c_conn.Forward(r)
+		req.HandleResponse(rsp)
 	}
 	return nil
 }
 
 func (c DataStoreConn) Forward(msg common.Message) error {
-	//log.Println("Forwarding msg ", msg)
 	c.forwardChan <- msg
 	return nil
 }
