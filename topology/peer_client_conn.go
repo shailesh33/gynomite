@@ -1,4 +1,4 @@
-package server
+package topology
 
 import (
 	"bitbucket.org/shailesh33/dynomite/common"
@@ -9,31 +9,28 @@ import (
 	"net"
 )
 
-type ClientConn struct {
-	conn   net.Conn
-	Writer *bufio.Writer
-	//forwardChan  chan common.Message
+type PeerClientConn struct {
+	conn         net.Conn
+	Writer       *bufio.Writer
 	outQueue     chan common.Request
 	quit         chan int
 	msgForwarder common.MsgForwarder
 }
 
-func (c ClientConn) String() string {
-	return fmt.Sprintf("<CLIENT from %s>", c.conn.RemoteAddr())
+func (c PeerClientConn) String() string {
+	return fmt.Sprintf("<Peer Client connection from %s>", c.conn.RemoteAddr())
 }
 
-func newClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (ClientConn, error) {
-	c := ClientConn{
-		conn:   conn,
-		Writer: bufio.NewWriter(conn),
-		//forwardChan: make(chan common.Message, 20000),
+func newPeerClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (PeerClientConn, error) {
+	log.Println("Creating new client conn")
+	return PeerClientConn{
+		conn:     conn,
+		Writer:   bufio.NewWriter(conn),
 		outQueue: make(chan common.Request, 20000),
-		quit:     make(chan int), msgForwarder: msgForwarder}
-	log.Printf("New client connection %s", c)
-	return c, nil
+		quit:     make(chan int), msgForwarder: msgForwarder}, nil
 }
 
-func (c *ClientConn) responder() {
+func (c *PeerClientConn) responder() {
 	for {
 		select {
 		case m := <-c.outQueue:
@@ -44,18 +41,20 @@ func (c *ClientConn) responder() {
 			//log.Printf("Received Response for request %s", req)
 			rsp.Write(c.Writer)
 		case <-c.quit:
-			log.Println("Client loop exiting", c)
+			log.Println("Peer Client loop exiting", c)
 			return
 		}
 	}
 }
 
-func (c ClientConn) Run() error {
-	defer func(c ClientConn) {
+func (c PeerClientConn) Run() error {
+	defer func(c PeerClientConn) {
 		log.Println("Closing client connection", c)
 		close(c.quit)
 		//TODO: wait for responder to finish here
 	}(c)
+	log.Printf("Running Loop for %s", c)
+
 	parser := datastore.NewRequestParser(bufio.NewReader(c.conn), c)
 
 	go c.responder()
@@ -65,7 +64,8 @@ func (c ClientConn) Run() error {
 			log.Println("Received Error ", err)
 			return err
 		}
-		log.Printf("%s Received %s", c, req)
+		log.Println("Getting next request to ", c.msgForwarder)
+
 		c.outQueue <- req
 		c.msgForwarder.MsgForward(req)
 	}

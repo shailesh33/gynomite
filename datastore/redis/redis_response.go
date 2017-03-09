@@ -271,7 +271,12 @@ func (parser redisResponseParser) GetNextResponse() (common.Response, error) {
 	// peek first byte
 	b, err := parser.r.Peek(1)
 	if err != nil {
-		return nil, fmt.Errorf("received error", err, " first byte ", b[0])
+		if len(b) > 0 {
+			return nil, fmt.Errorf("received error", err, " first byte :'", b[0], "'")
+		} else {
+			return nil, fmt.Errorf("received error", err)
+		}
+
 	}
 	switch b[0] {
 	case '$':

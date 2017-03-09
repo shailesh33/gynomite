@@ -12,6 +12,7 @@ func readArgument(r *bufio.Reader) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var length int
 	if _, err = fmt.Sscanf(line, "$%d\r\n", &length); err != nil {
 		return nil, fmt.Errorf("invalid length for argument in ", line)

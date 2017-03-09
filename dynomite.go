@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
 
 	"bitbucket.org/shailesh33/dynomite/conf"
@@ -16,6 +15,7 @@ import (
 	"bitbucket.org/shailesh33/dynomite/topology"
 	"io"
 	"runtime"
+	"sync"
 )
 
 var (
@@ -87,30 +87,11 @@ func main() {
 		log.Printf("Failed to connect to datastore")
 		os.Exit(1)
 	}
-	listener, err := net.Listen("tcp", conf.Pool.Listen)
-	if err != nil {
-		log.Println("Error listening on ", conf.Pool.Listen, err.Error())
-		os.Exit(1)
-	}
-	defer listener.Close()
-	log.Println("Listening on ", conf.Pool.Listen)
-	for {
-		// Listen for an incoming connection.
-		conn, err := listener.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-			os.Exit(1)
-		}
-		// Handle connections in a new goroutine.
-		go handleClient(conn, topo)
-	}
-}
 
-func handleClient(clientConn net.Conn, topo topology.Topology) {
-	defer clientConn.Close()
-	c, err := server.NewClientConnHandler(clientConn, topo)
-	if err != nil {
-		log.Println("Failed to handle client ", err)
-	}
-	c.Run()
+	go server.ListenAndServe(conf.Pool.Listen, topo)
+
+	// Block forever
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	wg.Wait()
 }

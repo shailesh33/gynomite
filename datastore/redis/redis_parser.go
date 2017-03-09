@@ -94,6 +94,7 @@ func NewRedisRequestParser(r *bufio.Reader, owner common.Context) RedisRequestPa
 }
 
 func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
+
 	r := parser.r
 	line, err := parser.r.ReadString('\n')
 	if err != nil {

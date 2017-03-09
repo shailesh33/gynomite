@@ -53,7 +53,7 @@ func (c DataStoreConn) Run() error {
 	return nil
 }
 
-func (c DataStoreConn) Forward(msg common.Message) error {
+func (c DataStoreConn) MsgForward(msg common.Message) error {
 	c.forwardChan <- msg
 	return nil
 }

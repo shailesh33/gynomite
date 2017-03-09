@@ -24,12 +24,12 @@ func (m rackMap) get(rackName string) (b Rack, ok bool) {
 	return
 }
 
-func rack_get_or_create_node(rack Rack, token string) Node {
+func rack_get_or_create_node(rack Rack, token string) *Node {
 	node, ok := rack.nodeMap.get(token)
 	if ok == true {
 		return node
 	}
-	node = Node{token: token}
+	node = &Node{token: token}
 	rack.nodeMap.add(node)
 	return node
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,7 +17,7 @@ type Topology struct {
 	myrack             string
 	mydatastore_server string
 	dcMap              dcMap
-	localNode          Node
+	localNode          *Node
 	listener           net.Listener
 }
 
@@ -47,7 +46,7 @@ func (t Topology) Print() {
 	}
 }
 
-func GetLocalNode(topo Topology) Node {
+func GetLocalNode(topo Topology) *Node {
 	return topo.localNode
 }
 
@@ -67,7 +66,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	dc := topo_get_or_create_dc(topo, topo.mydc)
 	rack := dc_get_or_create_rack(dc, topo.myrack)
 
-	var node Node
+	var node *Node = newNode()
 	node.is_local = true
 	node.is_same_dc = true
 	node.is_same_rack = true
@@ -88,7 +87,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 		if len(parts) != 5 {
 			return Topology{}, fmt.Errorf("Invalid entry in dyn_seeds %s", p)
 		}
-		var peer Node
+		var peer *Node = newNode()
 		peer.addr = parts[0]
 		peer.Port, err = strconv.Atoi(parts[1])
 		if err != nil {
@@ -130,8 +129,9 @@ func (t Topology) connect(c chan<- int) error {
 		for _, rack := range dc.rackMap.m {
 			for _, node := range rack.nodeMap.m {
 				wg.Add(1)
-				go func(n Node) {
+				go func(n *Node) {
 					n.connect()
+					log.Println(n)
 					wg.Done()
 				}(node)
 			}
@@ -146,17 +146,10 @@ func (t Topology) connect(c chan<- int) error {
 }
 
 func (t Topology) Start() error {
-	var err error
-	t.listener, err = net.Listen("tcp", net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)))
-	if err != nil {
-		log.Println("Error listening on", t.localNode.addr, t.localNode.Port, err.Error())
-		os.Exit(1)
-	}
-	log.Println("Listening on ", net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)))
-	t.Print()
+	go ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), t.localNode)
+
 	c := make(chan int, 1)
 	t.connect(c)
-	t.Print()
 
 	select {
 	case <-c:
@@ -172,7 +165,8 @@ func (t Topology) MsgForward(m common.Message) error {
 	for _, dc := range t.dcMap.m {
 		for _, rack := range dc.rackMap.m {
 			for _, node := range rack.nodeMap.m {
-				go node.MsgForward(m)
+				log.Printf("Forwarding %s to %s",m, node)
+				node.MsgForward(m)
 			}
 		}
 	}
