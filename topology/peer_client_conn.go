@@ -11,7 +11,7 @@ import (
 
 type PeerClientConn struct {
 	conn         net.Conn
-	Writer       *bufio.Writer
+	writer       *bufio.Writer
 	outQueue     chan common.Request
 	quit         chan int
 	msgForwarder common.MsgForwarder
@@ -21,11 +21,11 @@ func (c PeerClientConn) String() string {
 	return fmt.Sprintf("<Peer Client connection from %s>", c.conn.RemoteAddr())
 }
 
-func newPeerClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (PeerClientConn, error) {
-	log.Println("Creating new client conn")
+func newPeerClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (common.Conn, error) {
+	log.Println("Creating new Peer client conn")
 	return PeerClientConn{
 		conn:     conn,
-		Writer:   bufio.NewWriter(conn),
+		writer:   bufio.NewWriter(conn),
 		outQueue: make(chan common.Request, 20000),
 		quit:     make(chan int), msgForwarder: msgForwarder}, nil
 }
@@ -39,7 +39,7 @@ func (c *PeerClientConn) responder() {
 			// TODO: There should be timeout in Done
 			rsp := req.Done()
 			//log.Printf("Received Response for request %s", req)
-			rsp.Write(c.Writer)
+			rsp.Write(c.writer)
 		case <-c.quit:
 			log.Println("Peer Client loop exiting", c)
 			return
@@ -48,6 +48,8 @@ func (c *PeerClientConn) responder() {
 }
 
 func (c PeerClientConn) Run() error {
+	defer c.conn.Close()
+
 	defer func(c PeerClientConn) {
 		log.Println("Closing client connection", c)
 		close(c.quit)
@@ -71,3 +73,9 @@ func (c PeerClientConn) Run() error {
 	}
 	return nil
 }
+
+func (c PeerClientConn) MsgForward(m common.Message) error {
+	log.Panicf("%s does not implement MsgForward")
+	return nil
+}
+

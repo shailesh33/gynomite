@@ -1,14 +1,12 @@
-package server
+package common
 
 import (
-	"log"
 	"net"
+	"log"
 	"os"
-
-	"bitbucket.org/shailesh33/dynomite/common"
 )
 
-func ListenAndServe(listen string, msgForwarder common.MsgForwarder) {
+func ListenAndServe(listen string, msgForwarder MsgForwarder, chc ConnHandlerCreator) {
 	listener, err := net.Listen("tcp", listen)
 	if err != nil {
 		log.Println("Error listening on ", listen, err.Error())
@@ -24,15 +22,13 @@ func ListenAndServe(listen string, msgForwarder common.MsgForwarder) {
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleClient(conn, msgForwarder)
+		go func(conn net.Conn, msgForwarder MsgForwarder) {
+			c, err := chc(conn, msgForwarder)
+			if err != nil {
+				log.Println("Failed to handle client ", err)
+			}
+			go c.Run()
+		}(conn, msgForwarder)
 	}
 }
 
-func handleClient(clientConn net.Conn, msgForwarder common.MsgForwarder) {
-	defer clientConn.Close()
-	c, err := newClientConnHandler(clientConn, msgForwarder)
-	if err != nil {
-		log.Println("Failed to handle client ", err)
-	}
-	c.Run()
-}

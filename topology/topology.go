@@ -146,7 +146,7 @@ func (t Topology) connect(c chan<- int) error {
 }
 
 func (t Topology) Start() error {
-	go ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), t.localNode)
+	go common.ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), t.localNode, newPeerClientConnHandler)
 
 	c := make(chan int, 1)
 	t.connect(c)

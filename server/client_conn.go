@@ -22,7 +22,7 @@ func (c ClientConn) String() string {
 	return fmt.Sprintf("<CLIENT from %s>", c.conn.RemoteAddr())
 }
 
-func newClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (ClientConn, error) {
+func NewClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (common.Conn, error) {
 	c := ClientConn{
 		conn:   conn,
 		Writer: bufio.NewWriter(conn),
@@ -51,6 +51,8 @@ func (c *ClientConn) responder() {
 }
 
 func (c ClientConn) Run() error {
+	defer c.conn.Close()
+
 	defer func(c ClientConn) {
 		log.Println("Closing client connection", c)
 		close(c.quit)
@@ -59,6 +61,7 @@ func (c ClientConn) Run() error {
 	parser := datastore.NewRequestParser(bufio.NewReader(c.conn), c)
 
 	go c.responder()
+
 	for {
 		req, err := parser.GetNextRequest()
 		if err != nil {
@@ -69,5 +72,10 @@ func (c ClientConn) Run() error {
 		c.outQueue <- req
 		c.msgForwarder.MsgForward(req)
 	}
+	return nil
+}
+
+func (c ClientConn) MsgForward (m common.Message) error {
+	log.Panicf("%s does not implement MsgForward", c)
 	return nil
 }

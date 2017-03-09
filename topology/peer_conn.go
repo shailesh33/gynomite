@@ -12,7 +12,7 @@ import (
 // Implement a connection handle
 type PeerConn struct {
 	conn        net.Conn
-	Writer      *bufio.Writer
+	writer      *bufio.Writer
 	outQueue    chan common.Message
 	forwardChan chan common.Message
 	quit        chan int
@@ -26,7 +26,7 @@ func newPeerConnHandler(conn net.Conn) common.Conn {
 	log.Println("Creating new peer conn")
 	return PeerConn{
 		conn:        conn,
-		Writer:      bufio.NewWriter(conn),
+		writer:      bufio.NewWriter(conn),
 		forwardChan: make(chan common.Message, 20000),
 		outQueue:    make(chan common.Message, 20000),
 		quit:        make(chan int)}
@@ -38,7 +38,7 @@ func (c PeerConn) forwardRequestsToPeer() error {
 	for m = range c.forwardChan {
 		log.Println("Forwarding", m, " to", c)
 		c.outQueue <- m
-		err := m.Write(c.Writer)
+		err := m.Write(c.writer)
 		if err != nil {
 			log.Println("Error while sending to peer", err)
 		}

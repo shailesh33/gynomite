@@ -69,7 +69,7 @@ func (r RedisRequest) GetContext() common.Context {
 }
 
 func (r RedisRequest) String() string {
-	return fmt.Sprintf("%s '%s' %d", r.GetName(), r.GetKey(), r.GetHashCode())
+	return fmt.Sprintf("%s '%s' %d", r.Name, r.GetKey(), r.GetHashCode())
 }
 
 func (r RedisRequest) Done() common.Response {
