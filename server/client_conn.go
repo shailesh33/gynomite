@@ -75,7 +75,7 @@ func (c ClientConn) Run() error {
 	return nil
 }
 
-func (c ClientConn) MsgForward (m common.Message) error {
+func (c ClientConn) MsgForward(m common.Message) error {
 	log.Panicf("%s does not implement MsgForward", c)
 	return nil
 }

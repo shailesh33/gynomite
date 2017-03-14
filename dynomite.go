@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 
-	"bitbucket.org/shailesh33/dynomite/conf"
 	"bitbucket.org/shailesh33/dynomite/common"
+	"bitbucket.org/shailesh33/dynomite/conf"
 	"bitbucket.org/shailesh33/dynomite/datastore"
 	"bitbucket.org/shailesh33/dynomite/hashkit"
 	"bitbucket.org/shailesh33/dynomite/server"
@@ -17,7 +17,6 @@ import (
 	"io"
 	"runtime"
 	"sync"
-
 )
 
 var (
@@ -90,7 +89,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	go common.ListenAndServe(conf.Pool.Listen, topo, server.NewClientConnHandler)
+	go common.ListenAndServe(conf.Pool.Listen, server.NewClientConnHandler, topo)
 
 	// Block forever
 	wg := sync.WaitGroup{}

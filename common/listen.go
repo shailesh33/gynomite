@@ -1,12 +1,12 @@
 package common
 
 import (
-	"net"
 	"log"
+	"net"
 	"os"
 )
 
-func ListenAndServe(listen string, msgForwarder MsgForwarder, chc ConnHandlerCreator) {
+func ListenAndServe(listen string, chc ConnHandlerCreator, msgForwarder MsgForwarder) {
 	listener, err := net.Listen("tcp", listen)
 	if err != nil {
 		log.Println("Error listening on ", listen, err.Error())
@@ -31,4 +31,3 @@ func ListenAndServe(listen string, msgForwarder MsgForwarder, chc ConnHandlerCre
 		}(conn, msgForwarder)
 	}
 }
-

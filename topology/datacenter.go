@@ -1,35 +1,70 @@
 package topology
 
-import "strings"
+import (
+	"bitbucket.org/shailesh33/dynomite/common"
+	"fmt"
+	"log"
+	"strings"
+)
 
 type Datacenter struct {
 	name    string
-	rackMap rackMap
+	rackMap map[string]Rack
+	isLocal bool
 }
-
-type dcMap struct {
-	m map[string]Datacenter
-}
-
-func newDcMap() dcMap {
-	return dcMap{m: make(map[string]Datacenter)}
-}
-
-func (m dcMap) add(dc Datacenter) {
-	m.m[strings.ToLower(dc.name)] = dc
-}
-
-func (m dcMap) get(dcName string) (b Datacenter, ok bool) {
-	b, ok = m.m[strings.ToLower(dcName)]
-	return
-}
-
-func dc_get_or_create_rack(dc Datacenter, rack_name string) Rack {
-	rack, ok := dc.rackMap.get(rack_name)
-	if ok == true {
-		return rack
+func (dc Datacenter) String() string {
+	if dc.isLocal {
+		return fmt.Sprintf("<LOCAL DC %s>", dc.name)
+	} else {
+		return fmt.Sprintf("<REMOTE DC %s>", dc.name)
 	}
-	rack = Rack{name: rack_name, nodeMap: newNodeMap()}
-	dc.rackMap.add(rack)
-	return rack
+
+}
+
+func (dc Datacenter) getRack(rackName string) (Rack, error) {
+	rack, ok := dc.rackMap[strings.ToLower(rackName)]
+	if ok == true {
+		return rack, nil
+	}
+	return Rack{}, fmt.Errorf("Rack not Found %s", rackName)
+}
+
+func (dc Datacenter) addRack(rack Rack) error {
+	if _, err := dc.getRack(rack.name); err == nil {
+		return fmt.Errorf("Adding duplicate Rack with name %s", rack.name)
+	}
+	dc.rackMap[strings.ToLower(rack.name)] = rack
+	return nil
+}
+
+func newDatacenter(dcName string, isLocal bool) Datacenter {
+	return Datacenter{
+		name:    dcName,
+		rackMap: make(map[string]Rack),
+		isLocal: isLocal,
+	}
+}
+
+func (dc Datacenter) MsgForward(req common.Request) error {
+	// check if this message should be forwarded
+	if !dc.canForwardMessage(req.GetRoutingOverride()) {
+		log.Printf("Not forwarding %s to %s", req, dc)
+		return nil
+	}
+
+	for _, rack := range dc.rackMap {
+		rack.MsgForward(req)
+	}
+	return nil
+}
+
+func (dc Datacenter) canForwardMessage(routing_type common.RoutingOverride) bool {
+	if !dc.isLocal {
+		if (routing_type == common.ROUTING_ALL_DCS_TOKEN_OWNER) ||
+			(routing_type == common.ROUTING_ALL_DCS_ALL_NODES) {
+			return true
+		}
+		return false
+	}
+	return true
 }
