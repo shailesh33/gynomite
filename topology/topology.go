@@ -16,20 +16,20 @@ type Topology struct {
 	myDC              string
 	myRack            string
 	myDataStoreServer string
-	dcMap             map[string]Datacenter
+	dcMap             map[string]*Datacenter
 	localNode         *Node
 	forwardChan       chan common.Message
 }
 
-func (t Topology) getDC(dcName string) (Datacenter, error) {
+func (t Topology) getDC(dcName string) (*Datacenter, error) {
 	dc, ok := t.dcMap[strings.ToLower(dcName)]
 	if ok == true {
 		return dc, nil
 	}
-	return Datacenter{}, fmt.Errorf("DC not found with name %s", dcName)
+	return &Datacenter{}, fmt.Errorf("DC not found with name %s", dcName)
 }
 
-func (t Topology) addDC(dc Datacenter) error {
+func (t Topology) addDC(dc *Datacenter) error {
 	if _, err := t.getDC(dc.name); err == nil {
 		return fmt.Errorf("Adding duplicate DC with name", dc.name)
 	}
@@ -41,6 +41,7 @@ func (t Topology) Print() {
 	log.Println("DC: " + t.myDC + " Rack: " + t.myRack)
 	for dcname, dc := range t.dcMap {
 		for rackname, rack := range dc.rackMap {
+			log.Println(rack.name, rack.tokens)
 			for token, node := range rack.nodeMap {
 				log.Println("Peers: " + dcname + " " + rackname + " " + node.addr + ":" + strconv.Itoa(node.Port) + " " + strconv.Itoa(token) + "state:" + strconv.Itoa(int(node.state)))
 			}
@@ -48,15 +49,15 @@ func (t Topology) Print() {
 	}
 }
 
-func InitTopology(conf conf.Conf) (Topology, error) {
+func InitTopology(conf conf.Conf) (*Topology, error) {
 	// get local dc, rack, servername etc
 	// get peer information
 	// create nodes
 
-	topo := Topology{
+	topo := &Topology{
 		myDC:              conf.Pool.Datacenter,
 		myRack:            conf.Pool.Rack,
-		dcMap:             make(map[string]Datacenter),
+		dcMap:             make(map[string]*Datacenter),
 		myDataStoreServer: conf.Pool.Servers[0],
 		forwardChan:       make(chan common.Message, 20000),
 	}
@@ -65,7 +66,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	dc := newDatacenter(topo.myDC, true)
 	err := topo.addDC(dc)
 	if err != nil {
-		return Topology{}, err
+		return &Topology{}, err
 	}
 	log.Println("New DC", dc.name)
 
@@ -73,7 +74,7 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	rack := newRack(topo.myRack, true, true)
 	err = dc.addRack(rack)
 	if err != nil {
-		return Topology{}, err
+		return &Topology{}, err
 	}
 	log.Println("New rack", rack.name)
 
@@ -82,16 +83,16 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	host_port := strings.Split(listen, ":")
 	port, err := strconv.Atoi(host_port[1])
 	if err != nil {
-		return Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
+		return &Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
 	token, err := strconv.Atoi(conf.Pool.Tokens)
 	if err != nil {
-		return Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
+		return &Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
 	var node *Node = newNode(token, host_port[0], port, dc.name, rack.name, true, true, true)
 	err = rack.addNode(node)
 	if err != nil {
-		return Topology{}, err
+		return &Topology{}, err
 	}
 	topo.localNode = node
 
@@ -99,18 +100,18 @@ func InitTopology(conf conf.Conf) (Topology, error) {
 	for _, p := range conf.Pool.DynSeeds {
 		parts := strings.Split(p, ":")
 		if len(parts) != 5 {
-			return Topology{}, fmt.Errorf("Invalid entry in dyn_seeds %s", p)
+			return &Topology{}, fmt.Errorf("Invalid entry in dyn_seeds %s", p)
 		}
 		addr := parts[0]
 		port, err = strconv.Atoi(parts[1])
 		if err != nil {
-			return Topology{}, fmt.Errorf("Invalid port in peer option %s", p)
+			return &Topology{}, fmt.Errorf("Invalid port in peer option %s", p)
 		}
 		rackName := parts[2]
 		dcName := parts[3]
 		token, err = strconv.Atoi(parts[4])
 		if err != nil {
-			return Topology{}, fmt.Errorf("Invalid token in peer option %s", p)
+			return &Topology{}, fmt.Errorf("Invalid token in peer option %s", p)
 		}
 
 		isLocalDC := false

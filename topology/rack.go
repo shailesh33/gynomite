@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/shailesh33/dynomite/common"
 	"fmt"
 	"log"
+	"sort"
 )
 
 type Rack struct {
@@ -14,12 +15,13 @@ type Rack struct {
 	tokens      []int
 }
 
-func newRack(name string, isLocalDC bool, isLocalRack bool) Rack {
-	return Rack{
+func newRack(name string, isLocalDC bool, isLocalRack bool) *Rack {
+	return &Rack{
 		name:        name,
 		isLocalDC:   isLocalDC,
 		nodeMap:     make(map[int]*Node),
 		isLocalRack: isLocalRack,
+		tokens: 	make([]int, 0, 3),
 	}
 }
 
@@ -31,11 +33,14 @@ func (r Rack) getNode(token int) (*Node, error) {
 	return &Node{}, fmt.Errorf("Node not found with token %d in rack %s", token, r.name)
 }
 
-func (r Rack) addNode(node *Node) error {
+func (r *Rack) addNode(node *Node) error {
 	if _, err := r.getNode(node.token); err == nil {
 		return fmt.Errorf("Adding duplicate Node with token %d", node.token)
 	}
 	r.nodeMap[node.token] = node
+	r.tokens = append(r.tokens, node.token)
+	sort.Ints(r.tokens)
+	log.Println(r.name, r.tokens)
 	return nil
 }
 

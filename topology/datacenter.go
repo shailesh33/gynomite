@@ -9,9 +9,10 @@ import (
 
 type Datacenter struct {
 	name    string
-	rackMap map[string]Rack
+	rackMap map[string]*Rack
 	isLocal bool
 }
+
 func (dc Datacenter) String() string {
 	if dc.isLocal {
 		return fmt.Sprintf("<LOCAL DC %s>", dc.name)
@@ -21,15 +22,15 @@ func (dc Datacenter) String() string {
 
 }
 
-func (dc Datacenter) getRack(rackName string) (Rack, error) {
+func (dc Datacenter) getRack(rackName string) (*Rack, error) {
 	rack, ok := dc.rackMap[strings.ToLower(rackName)]
 	if ok == true {
 		return rack, nil
 	}
-	return Rack{}, fmt.Errorf("Rack not Found %s", rackName)
+	return &Rack{}, fmt.Errorf("Rack not Found %s", rackName)
 }
 
-func (dc Datacenter) addRack(rack Rack) error {
+func (dc *Datacenter) addRack(rack *Rack) error {
 	if _, err := dc.getRack(rack.name); err == nil {
 		return fmt.Errorf("Adding duplicate Rack with name %s", rack.name)
 	}
@@ -37,10 +38,10 @@ func (dc Datacenter) addRack(rack Rack) error {
 	return nil
 }
 
-func newDatacenter(dcName string, isLocal bool) Datacenter {
-	return Datacenter{
+func newDatacenter(dcName string, isLocal bool) *Datacenter {
+	return &Datacenter{
 		name:    dcName,
-		rackMap: make(map[string]Rack),
+		rackMap: make(map[string]*Rack),
 		isLocal: isLocal,
 	}
 }
