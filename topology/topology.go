@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -53,6 +54,7 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 	// get local dc, rack, servername etc
 	// get peer information
 	// create nodes
+	errTopo := &Topology{}
 
 	topo := &Topology{
 		myDC:              conf.Pool.Datacenter,
@@ -63,10 +65,10 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 	}
 
 	// add local node
-	dc := newDatacenter(topo.myDC, true)
+	dc := newDatacenter(topo, topo.myDC, true)
 	err := topo.addDC(dc)
 	if err != nil {
-		return &Topology{}, err
+		return errTopo, err
 	}
 	log.Println("New DC", dc.name)
 
@@ -74,7 +76,7 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 	rack := newRack(topo.myRack, true, true)
 	err = dc.addRack(rack)
 	if err != nil {
-		return &Topology{}, err
+		return errTopo, err
 	}
 	log.Println("New rack", rack.name)
 
@@ -83,16 +85,16 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 	host_port := strings.Split(listen, ":")
 	port, err := strconv.Atoi(host_port[1])
 	if err != nil {
-		return &Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
+		return errTopo, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
 	token, err := strconv.Atoi(conf.Pool.Tokens)
 	if err != nil {
-		return &Topology{}, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
+		return errTopo, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
 	var node *Node = newNode(token, host_port[0], port, dc.name, rack.name, true, true, true)
 	err = rack.addNode(node)
 	if err != nil {
-		return &Topology{}, err
+		return errTopo, err
 	}
 	topo.localNode = node
 
@@ -100,18 +102,18 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 	for _, p := range conf.Pool.DynSeeds {
 		parts := strings.Split(p, ":")
 		if len(parts) != 5 {
-			return &Topology{}, fmt.Errorf("Invalid entry in dyn_seeds %s", p)
+			return errTopo, fmt.Errorf("Invalid entry in dyn_seeds %s", p)
 		}
 		addr := parts[0]
 		port, err = strconv.Atoi(parts[1])
 		if err != nil {
-			return &Topology{}, fmt.Errorf("Invalid port in peer option %s", p)
+			return errTopo, fmt.Errorf("Invalid port in peer option %s", p)
 		}
 		rackName := parts[2]
 		dcName := parts[3]
 		token, err = strconv.Atoi(parts[4])
 		if err != nil {
-			return &Topology{}, fmt.Errorf("Invalid token in peer option %s", p)
+			return errTopo, fmt.Errorf("Invalid token in peer option %s", p)
 		}
 
 		isLocalDC := false
@@ -125,7 +127,7 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 		}
 
 		if dc, err = topo.getDC(dcName); err != nil {
-			dc = newDatacenter(dcName, isLocalDC)
+			dc = newDatacenter(topo, dcName, isLocalDC)
 			topo.addDC(dc)
 		}
 
@@ -140,7 +142,10 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 		peer = newNode(token, addr, port, dcName, rackName, isLocalDC, isLocalRack, false)
 		rack.addNode(peer)
 	}
-
+	err = topo.preselectRacksForReplication()
+	if err != nil {
+		return errTopo, nil
+	}
 	return topo, nil
 }
 
@@ -190,8 +195,15 @@ func (t Topology) MsgForward(m common.Message) error {
 
 func (t Topology) Run() error {
 	for m := range t.forwardChan {
+		req := m.(common.Request)
 		for _, dc := range t.dcMap {
-			req := m.(common.Request)
+			// check if this message should be forwarded
+			if !dc.canForwardMessage(req.GetRoutingOverride()) {
+				log.Printf("Not forwarding %s to %s", req, dc)
+				continue
+			}
+			log.Printf("Forwarding %s to %s", req, dc.name, req)
+
 			dc.MsgForward(req)
 			/*for _, rack := range dc.rackMap {
 				for _, node := range rack.nodeMap {
@@ -201,5 +213,38 @@ func (t Topology) Run() error {
 			}*/
 		}
 	}
+	return nil
+}
+
+func (t Topology) preselectRacksForReplication() error {
+	dc, err := t.getDC(t.myDC)
+	if err != nil {
+		return err
+	}
+
+	racks := make([]string, 0, len(dc.rackMap))
+	for k, _ := range dc.rackMap {
+		racks = append(racks, k)
+	}
+	log.Println("before sorting", racks)
+	sort.Strings(racks)
+	log.Println("after sorting", racks)
+
+	index := -1
+	for i, rack := range racks {
+		if rack == t.myRack {
+			index = i
+			break
+		}
+	}
+
+	if index == -1 {
+		return fmt.Errorf("Did not find rack %s in the Topology", t.myRack)
+	}
+
+	for _, dc := range t.dcMap {
+		dc.preselectRack(index)
+	}
+
 	return nil
 }

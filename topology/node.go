@@ -30,7 +30,7 @@ type Node struct {
 	state       NodeState
 }
 
-func (n Node) String() string {
+func (n *Node) String() string {
 	return fmt.Sprintf("<Node %s|%s|%s|%d>", n.dcName, n.rackName, n.addr, n.Port)
 }
 
@@ -79,7 +79,7 @@ func (n *Node) connect() error {
 	return err
 }
 
-func (n Node) MsgForward(m common.Message) error {
+func (n *Node) MsgForward(m common.Message) error {
 	log.Printf("Node %s Received %s", n, m)
 
 	if n.isLocalNode {

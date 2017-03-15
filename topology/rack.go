@@ -21,11 +21,11 @@ func newRack(name string, isLocalDC bool, isLocalRack bool) *Rack {
 		isLocalDC:   isLocalDC,
 		nodeMap:     make(map[int]*Node),
 		isLocalRack: isLocalRack,
-		tokens: 	make([]int, 0, 3),
+		tokens:      make([]int, 0, 3),
 	}
 }
 
-func (r Rack) getNode(token int) (*Node, error) {
+func (r *Rack) getNode(token int) (*Node, error) {
 	node, ok := r.nodeMap[token]
 	if ok == true {
 		return node, nil
@@ -44,13 +44,14 @@ func (r *Rack) addNode(node *Node) error {
 	return nil
 }
 
-func (r Rack) MsgForward(req common.Request) error {
+func (r *Rack) MsgForward(req common.Request) error {
 	// check if this message should be forwarded
 	if !r.canForwardMessage(req.GetRoutingOverride()) {
 		log.Printf("Not forwarding %s to %s", req, r)
 		return nil
 	}
 
+	// get the hashcode for the message and use it to route
 	// Depending on the routing type forward accordingly
 	for _, peer := range r.nodeMap {
 		peer.MsgForward(req)
@@ -58,7 +59,7 @@ func (r Rack) MsgForward(req common.Request) error {
 	return nil
 }
 
-func (r Rack) canForwardMessage(routing_type common.RoutingOverride) bool {
+func (r *Rack) canForwardMessage(routing_type common.RoutingOverride) bool {
 	if !r.isLocalDC {
 		// we came here that means we want to forward to this rack
 		// only if its the preferred rack.
@@ -67,9 +68,7 @@ func (r Rack) canForwardMessage(routing_type common.RoutingOverride) bool {
 
 	// local dc
 	if !r.isLocalRack {
-		if ((routing_type == common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER) ||
-			(routing_type == common.ROUTING_ALL_DCS_ALL_NODES) ||
-			(routing_type == common.ROUTING_ALL_DCS_TOKEN_OWNER)){
+		if routing_type == common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER {
 			return true
 		}
 		return false
