@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"bitbucket.org/shailesh33/dynomite/common"
-	"bitbucket.org/shailesh33/dynomite/hashkit"
+	"github.com/shailesh33/gynomite/common"
+	"github.com/shailesh33/gynomite/hashkit"
 	"strconv"
 )
 

@@ -1,6 +1,6 @@
 package topology
 
-import "bitbucket.org/shailesh33/dynomite/common"
+import "github.com/shailesh33/gynomite/common"
 
 type Handler interface {
 	Handle(common.Message) error

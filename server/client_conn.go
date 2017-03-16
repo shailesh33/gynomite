@@ -1,8 +1,8 @@
 package server
 
 import (
-	"bitbucket.org/shailesh33/dynomite/common"
-	"bitbucket.org/shailesh33/dynomite/datastore"
+	"github.com/shailesh33/gynomite/common"
+	"github.com/shailesh33/gynomite/datastore"
 	"bufio"
 	"fmt"
 	"log"

@@ -1,7 +1,7 @@
 package topology
 
 import (
-	"bitbucket.org/shailesh33/dynomite/common"
+	"github.com/shailesh33/gynomite/common"
 	"fmt"
 	"log"
 	"sort"

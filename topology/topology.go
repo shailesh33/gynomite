@@ -1,8 +1,8 @@
 package topology
 
 import (
-	"bitbucket.org/shailesh33/dynomite/common"
-	"bitbucket.org/shailesh33/dynomite/conf"
+	"github.com/shailesh33/gynomite/common"
+	"github.com/shailesh33/gynomite/conf"
 	"fmt"
 	"log"
 	"net"

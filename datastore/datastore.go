@@ -1,9 +1,9 @@
 package datastore
 
 import (
-	"bitbucket.org/shailesh33/dynomite/common"
-	"bitbucket.org/shailesh33/dynomite/conf"
-	"bitbucket.org/shailesh33/dynomite/datastore/redis"
+	"github.com/shailesh33/gynomite/common"
+	"github.com/shailesh33/gynomite/conf"
+	"github.com/shailesh33/gynomite/datastore/redis"
 	"bufio"
 	"fmt"
 	"log"

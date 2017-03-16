@@ -5,7 +5,6 @@ This is an attempt at rewriting the project Dynomite (http://github.com/Netflix/
 
 * Quick summary
 * Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
 ### How do I get set up? ###
 

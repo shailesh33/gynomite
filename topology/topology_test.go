@@ -1,7 +1,7 @@
 package topology
 
 import (
-	"bitbucket.org/shailesh33/dynomite/conf"
+	"github.com/shailesh33/gynomite/conf"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -24,7 +24,7 @@ func TestInitTopology(t *testing.T) {
 			if err != nil {
 				fmt.Println("failed to init topology for %s", f.Name())
 			}
-			Topology_print(topo)
+			topo.Print()
 		}
 	}
 }
