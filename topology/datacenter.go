@@ -74,13 +74,13 @@ func (dc *Datacenter) MsgForward(req common.Request) error {
 		} else {
 			// forward only to local rack
 			rack, _ := dc.getRack(dc.t.myRack)
-			log.Printf("%s: Forwarding %s to %s", dc.name, req, rack.name)
+			log.Printf("%s: Forwarding %s to %s", dc.name, req, rack)
 			rack.MsgForward(req)
 		}
 	} else {
-		log.Printf("Want to forward to %s", dc.preSelectedRackName)
+		log.Printf("Want to forward to %s", dc)
 		rack, _ := dc.getRack(dc.preSelectedRackName)
-		log.Printf("%s: Forwarding %s to %s", dc.name, req, rack.name)
+		log.Printf("%s: Forwarding %s to %s", dc, req, rack)
 		return rack.MsgForward(req)
 	}
 	return nil

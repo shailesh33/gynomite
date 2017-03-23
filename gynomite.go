@@ -86,7 +86,7 @@ func main() {
 
 	err = datastore.InitDataStoreConn(ds)
 	if err != nil {
-		log.Printf("Failed to connect to datastore")
+		log.Printf("Failed to connect to datastore %s", ds)
 		os.Exit(1)
 	}
 

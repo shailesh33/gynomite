@@ -32,6 +32,10 @@ type Datastore struct {
 	// get next message: takes a buf io  and returns a message and can iterate over that
 }
 
+func (ds Datastore) String () string {
+	return fmt.Sprintf("<Datastore at %s:%d>", ds.ip, ds.port)
+}
+
 func InitDataStore(conf conf.Conf) (Datastore, error) {
 	gdatastore = DataStoreType(conf.Pool.DataStore)
 	log.Println("Using datastore", dataStoreTypeDesc[gdatastore])

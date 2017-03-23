@@ -16,6 +16,7 @@ import (
 type Topology struct {
 	myDC              string
 	myRack            string
+	myToken		  uint32
 	myDataStoreServer string
 	dcMap             map[string]*Datacenter
 	localNode         *Node
@@ -44,7 +45,7 @@ func (t Topology) Print() {
 		for rackname, rack := range dc.rackMap {
 			log.Println(rack.name, rack.tokens)
 			for token, node := range rack.nodeMap {
-				log.Println("Peers: " + dcname + " " + rackname + " " + node.addr + ":" + strconv.Itoa(node.Port) + " " + strconv.Itoa(token) + "state:" + strconv.Itoa(int(node.state)))
+				log.Println("Peers: " + dcname + " " + rackname + " " + node.addr + ":" + strconv.Itoa(node.Port) + " " + strconv.Itoa(int(token)) + "state:" + strconv.Itoa(int(node.state)))
 			}
 		}
 	}
@@ -73,7 +74,7 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 	log.Println("New DC", dc.name)
 
 	// Add local rack
-	rack := newRack(topo.myRack, true, true)
+	rack := newRack(topo, topo.myRack, true, true)
 	err = dc.addRack(rack)
 	if err != nil {
 		return errTopo, err
@@ -87,10 +88,13 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 	if err != nil {
 		return errTopo, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
-	token, err := strconv.Atoi(conf.Pool.Tokens)
+
+	temp, err := strconv.Atoi(conf.Pool.Tokens)
+	token := uint32(temp)
 	if err != nil {
 		return errTopo, fmt.Errorf("Invalid port in dyn_listen option %s", conf.Pool.DynListen)
 	}
+	topo.myToken = token
 	var node *Node = newNode(token, host_port[0], port, dc.name, rack.name, true, true, true)
 	err = rack.addNode(node)
 	if err != nil {
@@ -111,7 +115,8 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 		}
 		rackName := parts[2]
 		dcName := parts[3]
-		token, err = strconv.Atoi(parts[4])
+		temp, err = strconv.Atoi(parts[4])
+		token = uint32(temp)
 		if err != nil {
 			return errTopo, fmt.Errorf("Invalid token in peer option %s", p)
 		}
@@ -132,7 +137,7 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 		}
 
 		if rack, err = dc.getRack(rackName); err != nil {
-			rack = newRack(rackName, isLocalDC, isLocalRack)
+			rack = newRack(topo, rackName, isLocalDC, isLocalRack)
 			dc.addRack(rack)
 		}
 		var peer *Node
@@ -181,7 +186,7 @@ func (t Topology) Start() error {
 	select {
 	case <-c:
 		log.Println("All nodes connected successfully")
-	case <-time.After(15 * time.Second):
+	case <-time.After(30 * time.Second):
 	}
 	log.Println("After select")
 	go t.Run()
@@ -202,7 +207,7 @@ func (t Topology) Run() error {
 				log.Printf("Not forwarding %s to %s", req, dc)
 				continue
 			}
-			log.Printf("Forwarding %s to %s", req, dc.name, req)
+			log.Printf("Forwarding %s to %s", req, dc)
 
 			dc.MsgForward(req)
 			/*for _, rack := range dc.rackMap {

@@ -18,7 +18,7 @@ const (
 )
 
 type Node struct {
-	token       int
+	token       uint32
 	addr        string
 	Port        int
 	dcName      string
@@ -34,7 +34,7 @@ func (n *Node) String() string {
 	return fmt.Sprintf("<Node %s|%s|%s|%d>", n.dcName, n.rackName, n.addr, n.Port)
 }
 
-func newNode(token int, addr string, port int, dcName string, rackName string,
+func newNode(token uint32, addr string, port int, dcName string, rackName string,
 	isLocalDC bool, isLocalRack bool, isLocal bool) *Node {
 	return &Node{
 		token:       token,
