@@ -15,6 +15,7 @@ const (
 	REQUEST_REDIS_SET
 	REQUEST_REDIS_COMMAND
 	REQUEST_REDIS_INFO
+	REQUEST_REDIS_PING
 )
 
 type requestProperties struct {
@@ -29,6 +30,7 @@ var RequestTypeDesc = [...]requestProperties{
 	REQUEST_REDIS_SET:     requestProperties{name: "SET", override: common.ROUTING_ALL_DCS_TOKEN_OWNER},
 	REQUEST_REDIS_COMMAND: requestProperties{name: "COMMAND", override: common.ROUTING_LOCAL_NODE_ONLY},
 	REQUEST_REDIS_INFO:    requestProperties{name: "INFO", override: common.ROUTING_LOCAL_NODE_ONLY},
+	REQUEST_REDIS_PING:    requestProperties{name: "PING", override: common.ROUTING_LOCAL_NODE_ONLY},
 }
 
 // Helper to map a protocol string to its internal request type

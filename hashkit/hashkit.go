@@ -3,6 +3,7 @@ package hashkit
 import (
 	"errors"
 	"log"
+	"strings"
 )
 
 type HashType int
@@ -23,11 +24,11 @@ func GetHash(key []byte) uint32 {
 }
 
 func set_hash_type(h string) error {
-	switch h {
-	case "":
+	if len(h) == 0 {
 		hashType = HASH_MURMUR
 		return nil
-	case "HASH_MURMUR":
+	}
+	if (strings.EqualFold("MURMUR", h)) {
 		hashType = HASH_MURMUR
 		return nil
 	}
