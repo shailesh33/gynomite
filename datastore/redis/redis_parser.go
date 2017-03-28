@@ -12,6 +12,7 @@ import (
 
 type RedisRequest struct {
 	Name        string
+	Id		uint64
 	msgType     common.MessageType
 	requestType RedisRequestType
 	override    common.RoutingOverride
@@ -69,7 +70,7 @@ func (r RedisRequest) GetContext() common.Context {
 }
 
 func (r RedisRequest) String() string {
-	return fmt.Sprintf("%s '%s' %d", r.Name, r.GetKey(), r.GetHashCode())
+	return fmt.Sprintf("%v %s '%s' %d", r.Id, r.Name, r.GetKey(), r.GetHashCode())
 }
 
 func (r RedisRequest) Done() common.Response {
@@ -131,6 +132,7 @@ func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
 	}
 
 	req := RedisRequest{
+		Id:		common.GetNextId(),
 		msgType:     common.REQUEST_DATASTORE,
 		requestType: requestType,
 		Name:        strings.ToUpper(string(firstArg)),

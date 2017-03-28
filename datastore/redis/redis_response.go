@@ -10,10 +10,11 @@ import (
 )
 
 type nilResponse struct {
+	Id	uint64
 }
 
 func newNilResponse() nilResponse {
-	return nilResponse{}
+	return nilResponse{Id:common.GetNextId()}
 }
 
 func (r nilResponse) Write(w *bufio.Writer) error {
@@ -37,11 +38,15 @@ func (parser redisResponseParser) nilResponseParser() (nilResponse, error) {
 
 /////////// integer response
 type integerResponse struct {
+	Id	uint64
 	I int
 }
 
 func newIntegerResponse(i int) integerResponse {
-	return integerResponse{I: i}
+	return integerResponse{
+		Id: common.GetNextId(),
+		I: i,
+	}
 }
 
 func (r integerResponse) Write(w *bufio.Writer) error {
@@ -72,11 +77,15 @@ func (parser redisResponseParser) integerResponseParser() (integerResponse, erro
 
 //////////// Status response
 type StatusResponse struct {
+	Id uint64
 	S string
 }
 
 func NewStatusResponse(s string) StatusResponse {
-	return StatusResponse{S: s}
+	return StatusResponse{
+		Id: common.GetNextId(),
+		S: s,
+	}
 }
 
 func (parser redisResponseParser) statusResponseParser() (StatusResponse, error) {
@@ -107,11 +116,15 @@ func (r StatusResponse) Write(w *bufio.Writer) error {
 /////////////// error response
 // error response
 type ErrorResponse struct {
+	Id uint64
 	ErrorString string
 }
 
 func NewErrorResponse(s string) ErrorResponse {
-	return ErrorResponse{ErrorString: s}
+	return ErrorResponse{
+		Id: common.GetNextId(),
+		ErrorString: s,
+	}
 }
 
 func (parser redisResponseParser) errorResponseParser() (ErrorResponse, error) {
@@ -141,11 +154,15 @@ func (r ErrorResponse) Write(w *bufio.Writer) error {
 
 /////////////// string response
 type StringResponse struct {
+	Id uint64
 	data []byte
 }
 
 func NewStringResponse(b []byte) StringResponse {
-	return StringResponse{data: b}
+	return StringResponse{
+		Id: common.GetNextId(),
+		data: b,
+	}
 }
 
 func (parser redisResponseParser) stringResponseParser() (StringResponse, error) {
@@ -206,6 +223,7 @@ func (r StringResponse) Write(w *bufio.Writer) error {
 
 //////////////// array response
 type ArrayResponse struct {
+	Id uint64
 	elems []common.Response
 }
 
@@ -225,7 +243,9 @@ func (r ArrayResponse) AppendArgs(elem common.Response) {
 }
 
 func NewArrayResponse() ArrayResponse {
-	return ArrayResponse{}
+	return ArrayResponse{
+		Id:common.GetNextId(),
+	}
 }
 
 //TODO: The array response can have different types of elements in it
