@@ -8,6 +8,7 @@ type MessageType int
 
 const (
 	REQUEST_DATASTORE MessageType = iota
+	RESPONSE_DATASTORE
 )
 
 type RoutingOverride int
@@ -23,6 +24,8 @@ const (
 //////////////////////////
 // This is a generic message that flow in the system
 type Message interface {
+	GetId()		uint64
+	GetType() MessageType
 	Write(w *bufio.Writer) error
 }
 
@@ -33,7 +36,6 @@ type Context interface {
 type Request interface {
 	Message
 	GetContext() Context
-	GetType() MessageType
 	GetName() string
 	GetKey() []byte
 	GetHashCode() uint32
@@ -56,6 +58,19 @@ type RequestParser interface {
 // This is an interfact that parses request from the stream of data typically from the underlying datastore.
 type ResponseParser interface {
 	GetNextResponse() (Response, error)
+}
+
+type BaseMessage struct {
+	Id uint64
+	MsgType     MessageType
+}
+
+func (m BaseMessage) GetId() uint64 {
+	return m.Id
+}
+
+func (m BaseMessage) GetType() MessageType {
+	return m.MsgType
 }
 
 type MsgForwarder interface {

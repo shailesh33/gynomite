@@ -10,11 +10,19 @@ import (
 )
 
 type nilResponse struct {
-	Id	uint64
+	common.BaseMessage
 }
 
 func newNilResponse() nilResponse {
-	return nilResponse{Id:common.GetNextId()}
+	return nilResponse{
+		BaseMessage :struct {
+			Id uint64
+			MsgType     common.MessageType
+		} {
+			Id:common.GetNextId(),
+			MsgType:common.RESPONSE_DATASTORE,
+		},
+	}
 }
 
 func (r nilResponse) Write(w *bufio.Writer) error {
@@ -38,13 +46,19 @@ func (parser redisResponseParser) nilResponseParser() (nilResponse, error) {
 
 /////////// integer response
 type integerResponse struct {
-	Id	uint64
+	common.BaseMessage
 	I int
 }
 
 func newIntegerResponse(i int) integerResponse {
 	return integerResponse{
-		Id: common.GetNextId(),
+		BaseMessage :struct {
+			Id uint64
+			MsgType     common.MessageType
+		} {
+			Id: common.GetNextId(),
+			MsgType:common.RESPONSE_DATASTORE,
+		},
 		I: i,
 	}
 }
@@ -77,13 +91,19 @@ func (parser redisResponseParser) integerResponseParser() (integerResponse, erro
 
 //////////// Status response
 type StatusResponse struct {
-	Id uint64
+	common.BaseMessage
 	S string
 }
 
 func NewStatusResponse(s string) StatusResponse {
 	return StatusResponse{
-		Id: common.GetNextId(),
+		BaseMessage :struct {
+			Id uint64
+			MsgType     common.MessageType
+		} {
+			Id: common.GetNextId(),
+			MsgType:common.RESPONSE_DATASTORE,
+		},
 		S: s,
 	}
 }
@@ -116,13 +136,19 @@ func (r StatusResponse) Write(w *bufio.Writer) error {
 /////////////// error response
 // error response
 type ErrorResponse struct {
-	Id uint64
+	common.BaseMessage
 	ErrorString string
 }
 
 func NewErrorResponse(s string) ErrorResponse {
 	return ErrorResponse{
-		Id: common.GetNextId(),
+		BaseMessage :struct {
+			Id uint64
+			MsgType     common.MessageType
+		} {
+			Id: common.GetNextId(),
+			MsgType:common.RESPONSE_DATASTORE,
+		},
 		ErrorString: s,
 	}
 }
@@ -154,13 +180,19 @@ func (r ErrorResponse) Write(w *bufio.Writer) error {
 
 /////////////// string response
 type StringResponse struct {
-	Id uint64
+	common.BaseMessage
 	data []byte
 }
 
 func NewStringResponse(b []byte) StringResponse {
 	return StringResponse{
-		Id: common.GetNextId(),
+		BaseMessage :struct {
+			Id uint64
+			MsgType     common.MessageType
+		} {
+			Id: common.GetNextId(),
+			MsgType:common.RESPONSE_DATASTORE,
+		},
 		data: b,
 	}
 }
@@ -223,7 +255,7 @@ func (r StringResponse) Write(w *bufio.Writer) error {
 
 //////////////// array response
 type ArrayResponse struct {
-	Id uint64
+	common.BaseMessage
 	elems []common.Response
 }
 
@@ -244,7 +276,13 @@ func (r ArrayResponse) AppendArgs(elem common.Response) {
 
 func NewArrayResponse() ArrayResponse {
 	return ArrayResponse{
-		Id:common.GetNextId(),
+		BaseMessage :struct {
+			Id uint64
+			MsgType     common.MessageType
+		} {
+			Id: common.GetNextId(),
+			MsgType:common.RESPONSE_DATASTORE,
+		},
 	}
 }
 

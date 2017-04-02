@@ -1,6 +1,14 @@
 package topology
 
-import "github.com/shailesh33/gynomite/common"
+import (
+	"github.com/shailesh33/gynomite/common"
+	"bufio"
+	"strconv"
+	"bytes"
+	"log"
+	"fmt"
+	"github.com/shailesh33/gynomite/datastore"
+)
 
 type Handler interface {
 	Handle(common.Message) error
@@ -8,4 +16,147 @@ type Handler interface {
 
 type MsgForwarder interface {
 	MsgForward(common.Message) error
+}
+
+type PeerMessage struct {
+	 //"   $2014$ <msg_id> <type> <flags> <version> <is_same_dc> *<keylen> <key> *<payload_len>\r\n"
+	 // type:
+	 // flags: uint8, 0x01 if encrypted
+	 // version: 1
+	 // is_same_dc: 0 or 1
+	 // keylen: length of aes key or 1
+	 // key: encrypted aes key or 'd'
+	 // payload_len: length of payload
+	MsgId	uint64
+	MsgType common.MessageType
+	Flags   uint8
+	Version uint8
+	IsSameDC bool
+	KeyLength uint16
+	Key	string
+	PayloadLength uint64
+	M	common.Message // holds the message
+
+	done        chan common.Response
+	ctx         common.Context
+
+}
+
+func (m PeerMessage) Write(w *bufio.Writer) error {
+	log.Printf("Sending %+v\n", m)
+	w.WriteString("   $2014$ ")
+	w.WriteString(strconv.Itoa(int(m.MsgId)))
+	w.WriteString(" ")
+	w.WriteString(strconv.Itoa(int(m.MsgType)))
+	w.WriteString(" ")
+	w.WriteString(strconv.Itoa(int(m.Flags)))
+	w.WriteString(" ")
+	w.WriteString(strconv.Itoa(int(m.Version)))
+	if (m.IsSameDC) {
+		w.WriteString(" 1")
+	} else {
+		w.WriteString(" 0")
+	}
+
+	w.WriteString(" *")
+	w.WriteString(strconv.Itoa(int(m.KeyLength)))
+	w.WriteString(" ")
+	w.WriteString(m.Key)
+	w.WriteString(" ")
+	w.WriteString("*")
+
+	// get the length of the payload
+	var b1 bytes.Buffer
+	tempW := bufio.NewWriter(&b1)
+	m.M.Write(tempW)
+	log.Println("len of ", m.M, "is ", b1.Len())
+
+
+	w.WriteString(strconv.Itoa(b1.Len()))
+	w.WriteByte('\r')
+	w.WriteByte('\n')
+	m.M.Write(w)
+	w.Flush()
+
+	return nil
+
+}
+
+func (m PeerMessage) GetId() uint64 {
+	return m.MsgId
+}
+
+func (m PeerMessage) GetType() common.MessageType {
+	return m.MsgType
+}
+
+func (r PeerMessage) Done() common.Response {
+	// TODO: Implement some timeout here
+	rsp := <-r.done
+	return rsp
+}
+
+func (r PeerMessage) GetContext() common.Context {
+	return r.ctx
+}
+
+type PeerMessageParser struct {
+	r     *bufio.Reader
+	owner common.Context
+}
+
+func newPeerMessageParser(r *bufio.Reader, owner common.Context) PeerMessageParser {
+	return PeerMessageParser{r: r, owner: owner}
+}
+
+func (parser PeerMessageParser) GetNextPeerMessage() (PeerMessage, error) {
+	r := parser.r
+	line, err := r.ReadString('\n')
+	if err != nil {
+		return PeerMessage{}, err
+	}
+	if len(line) == 0 {
+		return PeerMessage{}, fmt.Errorf("Empty line")
+	}
+
+	var msgId	uint64
+	var msgType common.MessageType
+	var flags   int
+	var version int
+	var isSameDC int
+	var keyLength int
+	var key	string
+	var payloadLength int
+
+	//"   $2014$ <msg_id> <type> <flags> <version> <is_same_dc> *<keylen> <key> *<payload_len>\r\n"
+	if _, err := fmt.Sscanf(line, "   $2014$ %d %d %d %d %d *%d %s *%d\r\n",
+		&msgId, &msgType, &flags, &version, &isSameDC, &keyLength, &key, &payloadLength); err != nil {
+		return PeerMessage{}, fmt.Errorf("invalid arguments in ", line)
+	}
+	m := PeerMessage{
+		MsgId:msgId,
+		MsgType:msgType,
+		Flags: uint8(flags),
+		Version:uint8(version),
+		IsSameDC:bool(isSameDC == 1),
+		KeyLength:uint16(keyLength),
+		Key:key,
+		PayloadLength:uint64(payloadLength),
+
+		done:        make(chan common.Response, 1),
+		ctx:parser.owner,
+	}
+
+	log.Printf("Received Peer Message %+v\n", m)
+
+	// depending on the message type, call the right parser and add it in PeerMessage::m
+	if (m.MsgType ==  common.REQUEST_DATASTORE) {
+		log.Println("Received a datastore request")
+		datastoreParser := datastore.NewRequestParser(parser.r, parser.owner)
+		m.M, err = datastoreParser.GetNextRequest()
+		if err != nil {
+			return PeerMessage{}, fmt.Errorf("Failed to parse request from peer", err)
+		}
+	}
+	return m, nil
 }

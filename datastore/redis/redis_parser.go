@@ -11,9 +11,8 @@ import (
 )
 
 type RedisRequest struct {
+	common.BaseMessage
 	Name        string
-	Id		uint64
-	msgType     common.MessageType
 	requestType RedisRequestType
 	override    common.RoutingOverride
 	ctx         common.Context
@@ -54,10 +53,6 @@ func (r RedisRequest) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func (r RedisRequest) GetType() common.MessageType {
-	return r.msgType
-}
-
 func (r RedisRequest) GetKey() []byte {
 	if len(r.Args) > 0 {
 		return r.Args[0]
@@ -70,7 +65,7 @@ func (r RedisRequest) GetContext() common.Context {
 }
 
 func (r RedisRequest) String() string {
-	return fmt.Sprintf("%v %s '%s' %d", r.Id, r.Name, r.GetKey(), r.GetHashCode())
+	return fmt.Sprintf("%v %s '%s' Hash:%d", r.Id, r.Name, r.GetKey(), r.GetHashCode())
 }
 
 func (r RedisRequest) Done() common.Response {
@@ -132,8 +127,13 @@ func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
 	}
 
 	req := RedisRequest{
-		Id:		common.GetNextId(),
-		msgType:     common.REQUEST_DATASTORE,
+		BaseMessage :struct {
+			Id uint64
+			MsgType     common.MessageType
+		} {
+			Id:		common.GetNextId(),
+			MsgType:     common.REQUEST_DATASTORE,
+		},
 		requestType: requestType,
 		Name:        strings.ToUpper(string(firstArg)),
 		override:    GetRequestOverride(requestType),

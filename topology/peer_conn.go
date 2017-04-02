@@ -29,7 +29,8 @@ func newPeerConnHandler(conn net.Conn) common.Conn {
 		writer:      bufio.NewWriter(conn),
 		forwardChan: make(chan common.Message, 20000),
 		outQueue:    make(chan common.Message, 20000),
-		quit:        make(chan int)}
+		quit:        make(chan int),
+	}
 }
 
 func (c PeerConn) forwardRequestsToPeer() error {

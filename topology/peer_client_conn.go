@@ -2,7 +2,6 @@ package topology
 
 import (
 	"github.com/shailesh33/gynomite/common"
-	"github.com/shailesh33/gynomite/datastore"
 	"bufio"
 	"fmt"
 	"log"
@@ -12,7 +11,7 @@ import (
 type PeerClientConn struct {
 	conn         net.Conn
 	writer       *bufio.Writer
-	outQueue     chan common.Request
+	outQueue     chan PeerMessage
 	quit         chan int
 	msgForwarder common.MsgForwarder
 }
@@ -26,7 +25,7 @@ func newPeerClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (
 	return PeerClientConn{
 		conn:     conn,
 		writer:   bufio.NewWriter(conn),
-		outQueue: make(chan common.Request, 20000),
+		outQueue: make(chan PeerMessage, 20000),
 		quit:     make(chan int), msgForwarder: msgForwarder}, nil
 }
 
@@ -34,10 +33,8 @@ func (c *PeerClientConn) responder() {
 	for {
 		select {
 		case m := <-c.outQueue:
-			// Wait for this request to be done
-			req := m.(common.Request)
 			// TODO: There should be timeout in Done
-			rsp := req.Done()
+			rsp := m.Done()
 			//log.Printf("Received Response for request %s", req)
 			rsp.Write(c.writer)
 		case <-c.quit:
@@ -57,11 +54,11 @@ func (c PeerClientConn) Run() error {
 	}(c)
 	log.Printf("Running Loop for %s", c)
 
-	parser := datastore.NewRequestParser(bufio.NewReader(c.conn), c)
+	parser := newPeerMessageParser(bufio.NewReader(c.conn), c)
 
 	go c.responder()
 	for {
-		req, err := parser.GetNextRequest()
+		req, err := parser.GetNextPeerMessage()
 		if err != nil {
 			log.Println("Received Error ", err)
 			return err
@@ -69,7 +66,7 @@ func (c PeerClientConn) Run() error {
 		log.Println("Getting next request to ", c.msgForwarder)
 
 		c.outQueue <- req
-		c.msgForwarder.MsgForward(req)
+		c.msgForwarder.MsgForward(req.M)
 	}
 	return nil
 }
