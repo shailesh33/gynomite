@@ -35,7 +35,6 @@ func (c *PeerClientConn) responder() {
 		case m := <-c.outQueue:
 			// TODO: There should be timeout in Done
 			rsp := m.Done()
-			//log.Printf("Received Response for request %s", req)
 			rsp.Write(c.writer)
 		case <-c.quit:
 			log.Println("Peer Client loop exiting", c)

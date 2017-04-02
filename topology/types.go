@@ -37,7 +37,6 @@ type PeerMessage struct {
 	PayloadLength uint64
 	M	common.Message // holds the message
 
-	done        chan common.Response
 	ctx         common.Context
 
 }
@@ -92,8 +91,8 @@ func (m PeerMessage) GetType() common.MessageType {
 
 func (r PeerMessage) Done() common.Response {
 	// TODO: Implement some timeout here
-	rsp := <-r.done
-	return rsp
+	req := r.M.(common.Request)
+	return req.Done()
 }
 
 func (r PeerMessage) GetContext() common.Context {
@@ -143,7 +142,6 @@ func (parser PeerMessageParser) GetNextPeerMessage() (PeerMessage, error) {
 		Key:key,
 		PayloadLength:uint64(payloadLength),
 
-		done:        make(chan common.Response, 1),
 		ctx:parser.owner,
 	}
 
