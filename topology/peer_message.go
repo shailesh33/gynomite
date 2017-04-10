@@ -39,6 +39,23 @@ type PeerMessage struct {
 
 }
 
+
+func NewPeerMessage(m common.Message) PeerMessage {
+	return PeerMessage{
+		BaseMessage : common.BaseMessage{
+			Id:common.GetNextId(),
+			MsgType:m.GetType(),
+		},
+		Flags:0,
+		Version:1,
+		IsSameDC:n.isLocalDC,
+		KeyLength:1,
+		Key:"d",
+		M: m,
+	}
+}
+
+
 func (m PeerMessage) Write(w *bufio.Writer) error {
 	//log.Printf("Sending %+v\n", m)
 	w.WriteString("   $2014$ ")

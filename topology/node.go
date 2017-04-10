@@ -79,21 +79,6 @@ func (n *Node) connect() error {
 	return err
 }
 
-func (n *Node) newPeerMessage(m common.Message) PeerMessage {
-	return PeerMessage{
-		BaseMessage : common.BaseMessage{
-			Id:m.GetId(),
-			MsgType:m.GetType(),
-		},
-		Flags:0,
-		Version:1,
-		IsSameDC:n.isLocalDC,
-		KeyLength:1,
-		Key:"d",
-		M: m,
-	}
-}
-
 func (n *Node) MsgForward(m common.Message) error {
 	//log.Printf("Node %s Received %s", n, m)
 
@@ -112,7 +97,7 @@ func (n *Node) MsgForward(m common.Message) error {
 		return nil
 	}
 
-	m = n.newPeerMessage(m)
+	m = NewPeerMessage(m)
 	// write it on the network
 	n.Handler.MsgForward(m)
 	return nil
