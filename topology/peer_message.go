@@ -39,8 +39,11 @@ type PeerMessage struct {
 
 }
 
+func (m PeerMessage) String() string {
+	return fmt.Sprintf("<PEER Message %v %s", m.Id, m.M)
+}
 
-func NewPeerMessage(m common.Message) PeerMessage {
+func NewPeerMessage(n *Node, m common.Message) PeerMessage {
 	return PeerMessage{
 		BaseMessage : common.BaseMessage{
 			Id:common.GetNextId(),

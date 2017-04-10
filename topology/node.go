@@ -97,7 +97,7 @@ func (n *Node) MsgForward(m common.Message) error {
 		return nil
 	}
 
-	m = NewPeerMessage(m)
+	m = NewPeerMessage(n, m)
 	// write it on the network
 	n.Handler.MsgForward(m)
 	return nil

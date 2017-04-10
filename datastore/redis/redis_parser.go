@@ -72,7 +72,7 @@ func (r *RedisRequest) GetContext() common.Context {
 }
 
 func (r *RedisRequest) String() string {
-	return fmt.Sprintf("%v %s '%s' Hash:%d Routing:%d", r.Id, r.Name, r.GetKey(), r.GetHashCode(), r.GetRoutingOverride())
+	return fmt.Sprintf("<%v %s '%s' Hash:%d Routing:%d>", r.Id, r.Name, r.GetKey(), r.GetHashCode(), r.GetRoutingOverride())
 }
 
 func (r *RedisRequest) Done() common.Response {
