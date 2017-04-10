@@ -32,10 +32,14 @@ func newPeerClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (
 func (c *PeerClientConn) responder() {
 	for {
 		select {
-		case m := <-c.outQueue:
+		case req := <-c.outQueue:
 			// TODO: There should be timeout in Done
-			rsp := m.Done()
-			rsp.Write(c.writer)
+			//log.Printf("Waiting for response of %s", req)
+			rsp := req.Done()
+			//log.Printf("Got response of %s", req)
+			req.M = rsp
+			req.MsgType = common.RESPONSE_DATASTORE
+			req.Write(c.writer)
 		case <-c.quit:
 			log.Println("Peer Client loop exiting", c)
 			return
@@ -62,7 +66,7 @@ func (c PeerClientConn) Run() error {
 			log.Println("Received Error ", err)
 			return err
 		}
-		log.Println("Getting next request to ", c.msgForwarder)
+		//log.Printf("Getting next request %+v ", req)
 
 		c.outQueue <- req
 		c.msgForwarder.MsgForward(req.M)

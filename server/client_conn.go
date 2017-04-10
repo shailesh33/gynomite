@@ -39,7 +39,6 @@ func (c *ClientConn) responder() {
 		case m := <-c.outQueue:
 			// Wait for this request to be done
 			req := m.(common.Request)
-			// TODO: There should be timeout in Done
 			rsp := req.Done()
 			//log.Printf("Received Response for request %s", req)
 			rsp.Write(c.Writer)
@@ -68,9 +67,9 @@ func (c ClientConn) Run() error {
 			log.Println("Received Error ", err)
 			return err
 		}
-		log.Printf("%s Received %s", c, req)
 		c.outQueue <- req
 		c.msgForwarder.MsgForward(req)
+		//log.Printf("%s Forwarded %s outqueue:%d", c, req, len(c.outQueue))
 	}
 	return nil
 }

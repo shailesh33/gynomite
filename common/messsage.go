@@ -14,7 +14,7 @@ const (
 type RoutingOverride int
 
 const (
-	ROUTING_NORMAL RoutingOverride = iota
+	ROUTING_INVALID RoutingOverride = iota
 	ROUTING_LOCAL_NODE_ONLY
 	ROUTING_LOCAL_RACK_TOKEN_OWNER
 	ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER
@@ -41,6 +41,7 @@ type Request interface {
 	GetHashCode() uint32
 	String() string
 	GetRoutingOverride() RoutingOverride
+	SetRoutingOverride(RoutingOverride)
 	Done() Response
 	HandleResponse(Response) error
 }

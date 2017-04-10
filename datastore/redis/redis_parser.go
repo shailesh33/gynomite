@@ -8,6 +8,8 @@ import (
 	"github.com/shailesh33/gynomite/common"
 	"github.com/shailesh33/gynomite/hashkit"
 	"strconv"
+	"time"
+	"log"
 )
 
 type RedisRequest struct {
@@ -18,22 +20,27 @@ type RedisRequest struct {
 	ctx         common.Context
 	Args        [][]byte
 	hashCode    uint32
+	responses   []common.Response
 	done        chan common.Response
 }
 
-func (r RedisRequest) GetName() string {
+func (r *RedisRequest) GetName() string {
 	return r.Name
 }
 
-func (r RedisRequest) GetHashCode() uint32 {
+func (r *RedisRequest) GetHashCode() uint32 {
 	return r.hashCode
 }
 
-func (r RedisRequest) GetRoutingOverride() common.RoutingOverride {
+func (r *RedisRequest) GetRoutingOverride() common.RoutingOverride {
 	return r.override
 }
 
-func (r RedisRequest) Write(w *bufio.Writer) error {
+func (r *RedisRequest) SetRoutingOverride(newOverride common.RoutingOverride) {
+	r.override = newOverride
+}
+
+func (r *RedisRequest) Write(w *bufio.Writer) error {
 	w.WriteByte('*')
 	w.WriteString(strconv.Itoa(len(r.Args) + 1))
 	w.WriteString("\r\n")
@@ -53,28 +60,34 @@ func (r RedisRequest) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func (r RedisRequest) GetKey() []byte {
+func (r *RedisRequest) GetKey() []byte {
 	if len(r.Args) > 0 {
 		return r.Args[0]
 	}
 	return []byte{}
 }
 
-func (r RedisRequest) GetContext() common.Context {
+func (r *RedisRequest) GetContext() common.Context {
 	return r.ctx
 }
 
-func (r RedisRequest) String() string {
-	return fmt.Sprintf("%v %s '%s' Hash:%d", r.Id, r.Name, r.GetKey(), r.GetHashCode())
+func (r *RedisRequest) String() string {
+	return fmt.Sprintf("%v %s '%s' Hash:%d Routing:%d", r.Id, r.Name, r.GetKey(), r.GetHashCode(), r.GetRoutingOverride())
 }
 
-func (r RedisRequest) Done() common.Response {
+func (r *RedisRequest) Done() common.Response {
 	// TODO: Implement some timeout here
-	rsp := <-r.done
+	var rsp common.Response
+	select {
+	case rsp = <- r.done:
+	case <- time.After(5 * time.Second):
+		log.Printf("req %s timedout", r)
+
+	}
 	return rsp
 }
 
-func (r RedisRequest) HandleResponse(rsp common.Response) error {
+func (r *RedisRequest) HandleResponse(rsp common.Response) error {
 	r.done <- rsp
 	return nil
 }
@@ -126,7 +139,7 @@ func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
 		return nil, fmt.Errorf("Invalid or unsupported request")
 	}
 
-	req := RedisRequest{
+	req := &RedisRequest{
 		BaseMessage :struct {
 			Id uint64
 			MsgType     common.MessageType
@@ -139,7 +152,7 @@ func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
 		override:    GetRequestOverride(requestType),
 		ctx:         parser.owner,
 		Args:        args,
-		done:        make(chan common.Response, 1),
+		done:        make(chan common.Response, 5), // TODO: this is a hack, ideally the reader of this channel should close the channel
 	}
 
 	req.hashCode = hashkit.GetHash(req.GetKey())

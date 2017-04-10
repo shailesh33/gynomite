@@ -178,7 +178,7 @@ func (t Topology) connect(c chan<- int) error {
 }
 
 func (t Topology) Start() error {
-	go common.ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), newPeerClientConnHandler, t.localNode)
+	go common.ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), newPeerClientConnHandler, t)
 
 	c := make(chan int, 1)
 	go t.connect(c)
@@ -201,21 +201,16 @@ func (t Topology) MsgForward(m common.Message) error {
 func (t Topology) Run() error {
 	for m := range t.forwardChan {
 		req := m.(common.Request)
+		//log.Printf("Forwarding %s", req)
 		for _, dc := range t.dcMap {
 			// check if this message should be forwarded
 			if !dc.canForwardMessage(req.GetRoutingOverride()) {
-				log.Printf("Not forwarding %s to %s", req, dc)
+				//log.Printf("Not forwarding %s to %s", req, dc)
 				continue
 			}
-			log.Printf("Forwarding %s to %s", req, dc)
+			//log.Printf("Forwarding %s to %s", req, dc)
 
 			dc.MsgForward(req)
-			/*for _, rack := range dc.rackMap {
-				for _, node := range rack.nodeMap {
-					log.Printf("Forwarding %s to %s", m, node)
-					node.MsgForward(m)
-				}
-			}*/
 		}
 	}
 	return nil

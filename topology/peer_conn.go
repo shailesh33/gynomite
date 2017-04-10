@@ -2,7 +2,6 @@ package topology
 
 import (
 	"github.com/shailesh33/gynomite/common"
-	"github.com/shailesh33/gynomite/datastore"
 	"bufio"
 	"fmt"
 	"log"
@@ -37,8 +36,8 @@ func (c PeerConn) forwardRequestsToPeer() error {
 	var m common.Message
 
 	for m = range c.forwardChan {
-		log.Println("Forwarding", m, " to", c)
 		c.outQueue <- m
+		//log.Println("Forwarded", m, " to", c, " outqueue:", len(c.outQueue))
 		err := m.Write(c.writer)
 		if err != nil {
 			log.Println("Error while sending to peer", err)
@@ -56,19 +55,24 @@ func (c PeerConn) Run() error {
 	}()
 
 	log.Printf("Running Loop for %s", c)
-	parser := datastore.NewResponseParser(bufio.NewReader(c.conn))
+	//parser := datastore.NewResponseParser(bufio.NewReader(c.conn))
+	parser := newPeerMessageParser(bufio.NewReader(c.conn), c)
 	go c.forwardRequestsToPeer()
 	for {
-		_, err := parser.GetNextResponse()
+		//log.Printf("%s Waiting for response", c)
+		rsp, err := parser.GetNextPeerMessage()
+
 		if err != nil {
 			log.Println("Received Error ", err)
 			return err
 		}
 
 		// to maintain ordering
-		<-c.outQueue
-		//req := m.(common.Request)
-		//req.HandleResponse(rsp)
+		m := <-c.outQueue
+		peerMessage := m.(PeerMessage)
+		req := peerMessage.M.(common.Request)
+		//log.Printf("%s Received response for %s", c, req)
+		req.HandleResponse(rsp.M)
 	}
 	return nil
 }

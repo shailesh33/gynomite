@@ -63,35 +63,41 @@ func (dc *Datacenter) MsgForward(req common.Request) error {
 
 	// This is a local dc, check if it needs to be sent to all the racks
 	// otherwise send to preselected rack
-	log.Printf("%s: Forwarding %s", dc.name, req)
+	//log.Printf("%s: Forwarding %s", dc.name, req)
 
 	if dc.isLocal {
-		if req.GetRoutingOverride() == common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER {
+		if (req.GetRoutingOverride() == common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER) ||
+			(req.GetRoutingOverride() == common.ROUTING_ALL_DCS_TOKEN_OWNER){
 			for _, rack := range dc.rackMap {
-				log.Printf("%s: Forwarding %s to %s", dc.name, req, rack.name)
+				//log.Printf("%s: Forwarding %s to %s", dc.name, req, rack.name)
 				rack.MsgForward(req)
 			}
 		} else {
 			// forward only to local rack
 			rack, _ := dc.getRack(dc.t.myRack)
-			log.Printf("%s: Forwarding %s to %s", dc.name, req, rack)
 			rack.MsgForward(req)
 		}
 	} else {
-		log.Printf("Want to forward to %s", dc)
 		rack, _ := dc.getRack(dc.preSelectedRackName)
-		log.Printf("%s: Forwarding %s to %s", dc, req, rack)
 		return rack.MsgForward(req)
 	}
 	return nil
 }
 
 func (dc *Datacenter) canForwardMessage(routing_type common.RoutingOverride) bool {
-	if !dc.isLocal {
-		if routing_type == common.ROUTING_ALL_DCS_TOKEN_OWNER {
+	//log.Printf("Routing override %d", routing_type)
+	switch routing_type {
+	case common.ROUTING_LOCAL_NODE_ONLY:
+		fallthrough;
+	case common.ROUTING_LOCAL_RACK_TOKEN_OWNER:
+		fallthrough
+	case common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER:
+		if dc.isLocal {
 			return true
 		}
 		return false
+	case common.ROUTING_ALL_DCS_TOKEN_OWNER:
+		return true
 	}
-	return true
+	return false
 }

@@ -25,7 +25,7 @@ type requestProperties struct {
 
 // Redis Request type to protocol string Map
 var RequestTypeDesc = [...]requestProperties{
-	REQUEST_UNSUPPORTED:   requestProperties{name: "REQUEST_UNKNOWN", override: common.ROUTING_NORMAL},
+	REQUEST_UNSUPPORTED:   requestProperties{name: "REQUEST_UNKNOWN", override: common.ROUTING_INVALID},
 	REQUEST_REDIS_GET:     requestProperties{name: "GET", override: common.ROUTING_LOCAL_RACK_TOKEN_OWNER},
 	REQUEST_REDIS_SET:     requestProperties{name: "SET", override: common.ROUTING_ALL_DCS_TOKEN_OWNER},
 	REQUEST_REDIS_COMMAND: requestProperties{name: "COMMAND", override: common.ROUTING_LOCAL_NODE_ONLY},

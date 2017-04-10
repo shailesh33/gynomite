@@ -61,17 +61,17 @@ func (r *Rack)GetTokenForHash(hashCode uint32) uint32{
 	// given the token array find which bucket does the hash lands:
 	i := sort.Search(len(r.tokens), func(i int) bool { return r.tokens[i] >= hashCode })
 	if i < len(r.tokens) {
-		fmt.Printf("Token for  %d found at %d\n", hashCode, r.tokens[i])
 		return r.tokens[i]
 	} else {
-		fmt.Printf("Token for %d found at %d\n", hashCode, r.tokens[0])
 		return r.tokens[0]
 	}
 }
 
 func (r *Rack) MsgForward(req common.Request) error {
 	if req.GetRoutingOverride() == common.ROUTING_LOCAL_NODE_ONLY {
+
 		localNode, err := r.getNode(r.t.myToken)
+
 		if err != nil {
 			log.Printf("Did not find mytoken %d in local rack %s", r.t.myToken, r)
 		}
@@ -84,6 +84,7 @@ func (r *Rack) MsgForward(req common.Request) error {
 			token := r.GetTokenForHash(req.GetHashCode())
 
 			node, err := r.getNode(token)
+			//log.Printf("Forwarding %s to %s", req, node)
 			if err != nil {
 				log.Printf("Failed to find node for token %d in rack %s for message with hash %d", token, r, req.GetHashCode())
 				return fmt.Errorf("Failed to find node for token %d in rack %s for message with hash %d", token, r, req.GetHashCode())

@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"strconv"
 	"bytes"
-	"log"
 	"fmt"
 	"github.com/shailesh33/gynomite/datastore"
 )
@@ -27,8 +26,7 @@ type PeerMessage struct {
 	 // keylen: length of aes key or 1
 	 // key: encrypted aes key or 'd'
 	 // payload_len: length of payload
-	MsgId	uint64
-	MsgType common.MessageType
+	common.BaseMessage
 	Flags   uint8
 	Version uint8
 	IsSameDC bool
@@ -42,9 +40,9 @@ type PeerMessage struct {
 }
 
 func (m PeerMessage) Write(w *bufio.Writer) error {
-	log.Printf("Sending %+v\n", m)
+	//log.Printf("Sending %+v\n", m)
 	w.WriteString("   $2014$ ")
-	w.WriteString(strconv.Itoa(int(m.MsgId)))
+	w.WriteString(strconv.Itoa(int(m.Id)))
 	w.WriteString(" ")
 	w.WriteString(strconv.Itoa(int(m.MsgType)))
 	w.WriteString(" ")
@@ -68,7 +66,6 @@ func (m PeerMessage) Write(w *bufio.Writer) error {
 	var b1 bytes.Buffer
 	tempW := bufio.NewWriter(&b1)
 	m.M.Write(tempW)
-	log.Println("len of ", m.M, "is ", b1.Len())
 
 
 	w.WriteString(strconv.Itoa(b1.Len()))
@@ -79,14 +76,6 @@ func (m PeerMessage) Write(w *bufio.Writer) error {
 
 	return nil
 
-}
-
-func (m PeerMessage) GetId() uint64 {
-	return m.MsgId
-}
-
-func (m PeerMessage) GetType() common.MessageType {
-	return m.MsgType
 }
 
 func (r PeerMessage) Done() common.Response {
@@ -133,8 +122,10 @@ func (parser PeerMessageParser) GetNextPeerMessage() (PeerMessage, error) {
 		return PeerMessage{}, fmt.Errorf("invalid arguments in ", line)
 	}
 	m := PeerMessage{
-		MsgId:msgId,
-		MsgType:msgType,
+		BaseMessage : common.BaseMessage {
+			Id:msgId,
+			MsgType: msgType,
+		},
 		Flags: uint8(flags),
 		Version:uint8(version),
 		IsSameDC:bool(isSameDC == 1),
@@ -145,16 +136,29 @@ func (parser PeerMessageParser) GetNextPeerMessage() (PeerMessage, error) {
 		ctx:parser.owner,
 	}
 
-	log.Printf("Received Peer Message %+v\n", m)
-
 	// depending on the message type, call the right parser and add it in PeerMessage::m
-	if (m.MsgType ==  common.REQUEST_DATASTORE) {
-		log.Println("Received a datastore request")
+	switch m.MsgType {
+	case common.REQUEST_DATASTORE:
 		datastoreParser := datastore.NewRequestParser(parser.r, parser.owner)
-		m.M, err = datastoreParser.GetNextRequest()
+		req, err := datastoreParser.GetNextRequest()
 		if err != nil {
 			return PeerMessage{}, fmt.Errorf("Failed to parse request from peer", err)
 		}
+		if !m.IsSameDC {
+			//log.Println("Overriding routing to", common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER)
+			req.SetRoutingOverride(common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER)
+		} else {
+			req.SetRoutingOverride(common.ROUTING_LOCAL_NODE_ONLY)
+		}
+		m.M = req
+	case common.RESPONSE_DATASTORE:
+		datastoreParser := datastore.NewResponseParser(parser.r)
+		rsp, err := datastoreParser.GetNextResponse()
+		if err != nil {
+			return PeerMessage{}, fmt.Errorf("Failed to parse response from peer", err)
+		}
+
+		m.M = rsp
 	}
 	return m, nil
 }

@@ -81,8 +81,10 @@ func (n *Node) connect() error {
 
 func (n *Node) newPeerMessage(m common.Message) PeerMessage {
 	return PeerMessage{
-		MsgId:m.GetId(),
-		MsgType: m.GetType(),
+		BaseMessage : common.BaseMessage{
+			Id:m.GetId(),
+			MsgType:m.GetType(),
+		},
 		Flags:0,
 		Version:1,
 		IsSameDC:n.isLocalDC,
@@ -93,7 +95,7 @@ func (n *Node) newPeerMessage(m common.Message) PeerMessage {
 }
 
 func (n *Node) MsgForward(m common.Message) error {
-	log.Printf("Node %s Received %s", n, m)
+	//log.Printf("Node %s Received %s", n, m)
 
 	if n.isLocalNode {
 		req := m.(common.Request)
