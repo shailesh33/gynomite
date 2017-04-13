@@ -69,7 +69,7 @@ func (c PeerConn) Run() error {
 
 		// to maintain ordering
 		m := <-c.outQueue
-		log.Printf("%s Received response for %s", c, m)
+		//log.Printf("%s Received response for %s", c, m)
 		peerMessage := m.(PeerMessage)
 		req := peerMessage.M.(common.Request)
 		req.HandleResponse(rsp.M)

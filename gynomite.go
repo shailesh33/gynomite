@@ -49,8 +49,8 @@ func init() {
 	flag.BoolVar(&version, "V", false, "show version and exit")
 	flag.StringVar(&statsAddr, "a", "0.0.0.0", "set stats monitoring ip (default: 0.0.0.0)")
 	flag.IntVar(&statsInterval, "i", 30000, "set stats aggregation interval in msec (default: 30000 msec)")
-	flag.IntVar(&mbufSize, "i", 16384, "MBuf size (default: 16KB)")
-	flag.IntVar(&numMessages, "i", 200000, "Max Messages (default: 200000)")
+	flag.IntVar(&mbufSize, "m", 16384, "MBuf size (default: 16KB)")
+	flag.IntVar(&numMessages, "M", 200000, "Max Messages (default: 200000)")
 	flag.Parse()
 }
 
