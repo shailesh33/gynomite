@@ -16,11 +16,15 @@ type DataStoreType int
 
 const (
 	REDIS    = iota
-	MEMCACHE = iota
+	MEMCACHE
 )
 
 var gdatastore DataStoreType
-var dataStoreTypeDesc = [...]string{REDIS: "REDIS", MEMCACHE: "MEMCACHE"}
+var dataStoreTypeDesc = [...]string{
+	REDIS: "REDIS",
+	MEMCACHE: "MEMCACHE",
+}
+
 var gDatastoreConn DataStoreConn
 
 type Datastore struct {

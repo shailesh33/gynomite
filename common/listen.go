@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func ListenAndServe(listen string, chc ConnHandlerCreator, msgForwarder MsgForwarder) {
+func ListenAndServe(listen string, chc ConnCreator, msgForwarder MsgForwarder) {
 	listener, err := net.Listen("tcp", listen)
 	if err != nil {
 		log.Println("Error listening on ", listen, err.Error())

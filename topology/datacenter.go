@@ -84,6 +84,10 @@ func (dc *Datacenter) MsgForward(req common.Request) error {
 	return nil
 }
 
+func (dc *Datacenter) getRackCount() int {
+	return len(dc.rackMap)
+}
+
 func (dc *Datacenter) canForwardMessage(routing_type common.RoutingOverride) bool {
 	//log.Printf("Routing override %d", routing_type)
 	switch routing_type {

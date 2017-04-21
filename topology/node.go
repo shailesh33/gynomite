@@ -26,7 +26,7 @@ type Node struct {
 	isLocalNode bool
 	isLocalRack bool
 	isLocalDC   bool
-	Handler     common.Conn
+	Conn        common.Conn
 	state       NodeState
 }
 
@@ -72,8 +72,8 @@ func (n *Node) connect() error {
 		tcpConn := conn.(*net.TCPConn)
 		tcpConn.SetKeepAlive(true)
 		tcpConn.SetKeepAlivePeriod(30 * time.Second)
-		n.Handler = newPeerConnHandler(conn)
-		go n.Handler.Run()
+		n.Conn = newPeerConn(conn)
+		go n.Conn.Run()
 		return nil
 	}
 	return err
@@ -99,7 +99,7 @@ func (n *Node) MsgForward(m common.Message) error {
 
 	m = NewPeerMessage(n, m)
 	// write it on the network
-	n.Handler.MsgForward(m)
+	n.Conn.MsgForward(m)
 	return nil
 
 }

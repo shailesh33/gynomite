@@ -21,7 +21,7 @@ func (c PeerConn) String() string {
 	return fmt.Sprintf("<Peer connection To %s>", c.conn.RemoteAddr())
 }
 
-func newPeerConnHandler(conn net.Conn) common.Conn {
+func newPeerConn(conn net.Conn) common.Conn {
 	log.Println("Creating new peer conn")
 	return PeerConn{
 		conn:        conn,

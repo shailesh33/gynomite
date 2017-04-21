@@ -20,17 +20,18 @@ const (
 
 type requestProperties struct {
 	name     string
+	isRead	 bool
 	override common.RoutingOverride
 }
 
 // Redis Request type to protocol string Map
 var RequestTypeDesc = [...]requestProperties{
-	REQUEST_UNSUPPORTED:   requestProperties{name: "REQUEST_UNKNOWN", override: common.ROUTING_INVALID},
-	REQUEST_REDIS_GET:     requestProperties{name: "GET", override: common.ROUTING_LOCAL_RACK_TOKEN_OWNER},
-	REQUEST_REDIS_SET:     requestProperties{name: "SET", override: common.ROUTING_ALL_DCS_TOKEN_OWNER},
-	REQUEST_REDIS_COMMAND: requestProperties{name: "COMMAND", override: common.ROUTING_LOCAL_NODE_ONLY},
-	REQUEST_REDIS_INFO:    requestProperties{name: "INFO", override: common.ROUTING_LOCAL_NODE_ONLY},
-	REQUEST_REDIS_PING:    requestProperties{name: "PING", override: common.ROUTING_LOCAL_NODE_ONLY},
+	REQUEST_UNSUPPORTED:   requestProperties{name: "REQUEST_UNKNOWN", override: common.ROUTING_DEFAULT, isRead:true},
+	REQUEST_REDIS_GET:     requestProperties{name: "GET", override: common.ROUTING_DEFAULT, isRead:true},
+	REQUEST_REDIS_SET:     requestProperties{name: "SET", override: common.ROUTING_DEFAULT, isRead:false},
+	REQUEST_REDIS_COMMAND: requestProperties{name: "COMMAND", override: common.ROUTING_LOCAL_NODE_ONLY, isRead:true},
+	REQUEST_REDIS_INFO:    requestProperties{name: "INFO", override: common.ROUTING_LOCAL_NODE_ONLY, isRead:true},
+	REQUEST_REDIS_PING:    requestProperties{name: "PING", override: common.ROUTING_LOCAL_NODE_ONLY, isRead:true},
 }
 
 // Helper to map a protocol string to its internal request type
@@ -68,6 +69,19 @@ func GetRequestTypeFromString(r string) RedisRequestType {
 	return gRM.get(r)
 }
 
-func GetRequestOverride(t RedisRequestType) common.RoutingOverride {
-	return RequestTypeDesc[t].override
+func GetRequestOverride(t RedisRequestType, consistency common.Consistency) common.RoutingOverride {
+	properties := RequestTypeDesc[t]
+	if properties.override == common.ROUTING_DEFAULT {
+		if (properties.isRead) {
+			if consistency == common.DC_ONE {
+				return common.ROUTING_LOCAL_RACK_TOKEN_OWNER
+			} else {
+				return common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER
+			}
+		}
+		return common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER
+	} else {
+		return properties.override
+	}
 }
+

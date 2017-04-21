@@ -17,7 +17,6 @@ type Topology struct {
 	myDC              string
 	myRack            string
 	myToken		  uint32
-	myDataStoreServer string
 	dcMap             map[string]*Datacenter
 	localNode         *Node
 	forwardChan       chan common.Message
@@ -61,7 +60,6 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 		myDC:              conf.Pool.Datacenter,
 		myRack:            conf.Pool.Rack,
 		dcMap:             make(map[string]*Datacenter),
-		myDataStoreServer: conf.Pool.Servers[0],
 		forwardChan:       make(chan common.Message, 20000),
 	}
 
@@ -178,7 +176,7 @@ func (t Topology) connect(c chan<- int) error {
 }
 
 func (t Topology) Start() error {
-	go common.ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), newPeerClientConnHandler, t)
+	go common.ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), newPeerClientConn, t)
 
 	c := make(chan int, 1)
 	go t.connect(c)
@@ -197,6 +195,19 @@ func (t Topology) MsgForward(m common.Message) error {
 	t.forwardChan <- m
 	return nil
 }
+
+func (t Topology) GetLocalRackCount() (int, error) {
+	dc, err := t.getDC(t.myDC)
+	if err != nil {
+		return err
+	}
+	return dc.getRackCount()
+}
+
+func (t Topology) GetDCCount() (int, error) {
+	return len(t.dcMap), nil
+}
+
 
 func (t Topology) Run() error {
 	for m := range t.forwardChan {
@@ -247,4 +258,37 @@ func (t Topology) preselectRacksForReplication() error {
 	}
 
 	return nil
+}
+
+
+func (t Topology) GetResponseCounts(override common.RoutingOverride, consistency common.Consistency) (int, int) {
+	maxResponses := 0
+	quorumResponses := 0
+	var err error
+	switch override {
+	case common.ROUTING_LOCAL_NODE_ONLY:
+		fallthrough
+	case common.ROUTING_LOCAL_RACK_TOKEN_OWNER:
+		maxResponses = 1
+		quorumResponses = 1
+	case common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER:
+		fallthrough
+
+	case common.ROUTING_ALL_DCS_TOKEN_OWNER:
+		maxResponses, err = t.GetLocalRackCount()
+		if err != nil {
+			return err
+		}
+		if (consistency ==  common.DC_ONE) {
+			quorumResponses = 1
+		} else {
+			quorumResponses = maxResponses/2 + 1
+		}
+		if (override == common.ROUTING_ALL_DCS_TOKEN_OWNER) {
+			maxResponses = maxResponses + t.GetDCCount() - 1; // -1 for local DC since there will responses from racks instead
+		}
+
+	}
+	return quorumResponses, maxResponses
+
 }
