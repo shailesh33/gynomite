@@ -10,6 +10,7 @@ import (
 
 type PeerClientConn struct {
 	conn         net.Conn
+	placement	common.NodePlacement
 	writer       *bufio.Writer
 	outQueue     chan PeerMessage
 	quit         chan int
@@ -20,10 +21,11 @@ func (c PeerClientConn) String() string {
 	return fmt.Sprintf("<Peer Client connection from %s>", c.conn.RemoteAddr())
 }
 
-func newPeerClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (common.Conn, error) {
+func newPeerClientConn(conn net.Conn, placement common.NodePlacement, msgForwarder common.MsgForwarder) (common.Conn, error) {
 	log.Println("Creating new Peer client conn")
 	return PeerClientConn{
 		conn:     conn,
+		placement:	  placement,
 		writer:   bufio.NewWriter(conn),
 		outQueue: make(chan PeerMessage, 20000),
 		quit:     make(chan int), msgForwarder: msgForwarder}, nil
@@ -61,7 +63,7 @@ func (c PeerClientConn) Run() error {
 
 	go c.responder()
 	for {
-		req, err := parser.GetNextPeerMessage()
+		req, err := parser.GetNextPeerMessage(c.placement)
 		if err != nil {
 			log.Println("Received Error ", err)
 			return err

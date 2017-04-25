@@ -176,7 +176,7 @@ func (t Topology) connect(c chan<- int) error {
 }
 
 func (t Topology) Start() error {
-	go common.ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), newPeerClientConn, t)
+	go common.ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), newPeerClientConn, t, t)
 
 	c := make(chan int, 1)
 	go t.connect(c)
@@ -196,16 +196,13 @@ func (t Topology) MsgForward(m common.Message) error {
 	return nil
 }
 
-func (t Topology) GetLocalRackCount() (int, error) {
-	dc, err := t.getDC(t.myDC)
-	if err != nil {
-		return err
-	}
+func (t Topology) GetLocalRackCount() int {
+	dc, _ := t.getDC(t.myDC)
 	return dc.getRackCount()
 }
 
-func (t Topology) GetDCCount() (int, error) {
-	return len(t.dcMap), nil
+func (t Topology) GetDCCount() int {
+	return len(t.dcMap)
 }
 
 
@@ -260,11 +257,9 @@ func (t Topology) preselectRacksForReplication() error {
 	return nil
 }
 
-
 func (t Topology) GetResponseCounts(override common.RoutingOverride, consistency common.Consistency) (int, int) {
 	maxResponses := 0
 	quorumResponses := 0
-	var err error
 	switch override {
 	case common.ROUTING_LOCAL_NODE_ONLY:
 		fallthrough
@@ -275,10 +270,8 @@ func (t Topology) GetResponseCounts(override common.RoutingOverride, consistency
 		fallthrough
 
 	case common.ROUTING_ALL_DCS_TOKEN_OWNER:
-		maxResponses, err = t.GetLocalRackCount()
-		if err != nil {
-			return err
-		}
+		maxResponses = t.GetLocalRackCount()
+
 		if (consistency ==  common.DC_ONE) {
 			quorumResponses = 1
 		} else {

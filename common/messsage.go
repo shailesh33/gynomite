@@ -14,7 +14,7 @@ const (
 type RoutingOverride int
 
 const (
-	ROUTING_INVALID RoutingOverride = iota
+	ROUTING_DEFAULT RoutingOverride = iota
 	ROUTING_LOCAL_NODE_ONLY
 	ROUTING_LOCAL_RACK_TOKEN_OWNER
 	ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER
@@ -36,12 +36,10 @@ type Context interface {
 type Request interface {
 	Message
 	GetContext() Context
-	GetName() string
-	GetKey() []byte
 	GetHashCode() uint32
-	String() string
 	GetRoutingOverride() RoutingOverride
 	SetRoutingOverride(RoutingOverride)
+	SetResponseCounts(quorumResponses, maxResponses int)
 	Done() Response
 	HandleResponse(Response) error
 }
@@ -53,7 +51,7 @@ type Response interface {
 
 // This is an interface that parses request from the stream of data typically from the client.
 type RequestParser interface {
-	GetNextRequest() (Request, error)
+	GetNextRequest(Consistency, NodePlacement) (Request, error)
 }
 
 // This is an interfact that parses request from the stream of data typically from the underlying datastore.
@@ -76,4 +74,10 @@ func (m BaseMessage) GetType() MessageType {
 
 type MsgForwarder interface {
 	MsgForward(Message) error
+}
+
+type NodePlacement interface {
+	GetResponseCounts(RoutingOverride, Consistency) (quorumResponses, maxResponses int)
+	GetLocalRackCount() int
+	GetDCCount() int
 }

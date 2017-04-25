@@ -94,7 +94,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	go common.ListenAndServe(conf.Pool.Listen, server.NewClientConn, topo)
+	go common.ListenAndServe(conf.Pool.Listen, server.NewClientConn, topo, topo)
 
 	// Block forever
 	wg := sync.WaitGroup{}

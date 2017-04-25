@@ -78,8 +78,9 @@ func GetRequestOverride(t RedisRequestType, consistency common.Consistency) comm
 			} else {
 				return common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER
 			}
+		} else {
+			return common.ROUTING_ALL_DCS_TOKEN_OWNER
 		}
-		return common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER
 	} else {
 		return properties.override
 	}

@@ -60,7 +60,7 @@ func (c PeerConn) Run() error {
 	go c.forwardRequestsToPeer()
 	for {
 		//log.Printf("%s Waiting for response", c)
-		rsp, err := parser.GetNextPeerMessage()
+		rsp, err := parser.GetNextPeerResponse()
 
 		if err != nil {
 			log.Println("Received Error ", err)

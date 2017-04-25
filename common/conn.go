@@ -1,6 +1,8 @@
 package common
 
-import "net"
+import (
+	"net"
+)
 
 type Conn interface {
 	Run() error
@@ -8,4 +10,12 @@ type Conn interface {
 	MsgForward(Message) error // Forward a message to this connection
 }
 
-type ConnHandlerCreator func(net.Conn, MsgForwarder) (Conn, error)
+type Consistency int
+
+const (
+	DC_ONE Consistency = iota
+	DC_QUORUM
+	DC_SAFE_QUORUM
+)
+
+type ConnCreator func(net.Conn, NodePlacement, MsgForwarder) (Conn, error)

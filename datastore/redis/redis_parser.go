@@ -20,12 +20,11 @@ type RedisRequest struct {
 	ctx         common.Context
 	Args        [][]byte
 	hashCode    uint32
+	quorum_responses int
+	max_responses	int
+	received_responses int
 	responses   []common.Response
 	done        chan common.Response
-}
-
-func (r *RedisRequest) GetName() string {
-	return r.Name
 }
 
 func (r *RedisRequest) GetHashCode() uint32 {
@@ -60,7 +59,7 @@ func (r *RedisRequest) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func (r *RedisRequest) GetKey() []byte {
+func (r *RedisRequest) getKey() []byte {
 	if len(r.Args) > 0 {
 		return r.Args[0]
 	}
@@ -72,7 +71,7 @@ func (r *RedisRequest) GetContext() common.Context {
 }
 
 func (r *RedisRequest) String() string {
-	return fmt.Sprintf("<%v %s '%s' Hash:%d Routing:%d>", r.Id, r.Name, r.GetKey(), r.GetHashCode(), r.GetRoutingOverride())
+	return fmt.Sprintf("<%v %s '%s' Hash:%d Routing:%d>", r.Id, r.Name, r.getKey(), r.GetHashCode(), r.GetRoutingOverride())
 }
 
 func (r *RedisRequest) Done() common.Response {
@@ -88,9 +87,17 @@ func (r *RedisRequest) Done() common.Response {
 }
 
 func (r *RedisRequest) HandleResponse(rsp common.Response) error {
+	r.received_responses = r.received_responses + 1
+	log.Printf("request %s received responses %d max_responses %d", r.Name, r.received_responses, r.max_responses)
 	r.done <- rsp
 	return nil
 }
+
+func (r *RedisRequest) SetResponseCounts(quorumResponses, maxResponses int) {
+	r.quorum_responses = quorumResponses
+	r.max_responses = maxResponses
+}
+
 
 // Redis request Parser
 type RedisRequestParser struct {
@@ -102,7 +109,7 @@ func NewRedisRequestParser(r *bufio.Reader, owner common.Context) RedisRequestPa
 	return RedisRequestParser{r: r, owner: owner}
 }
 
-func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
+func (parser RedisRequestParser) GetNextRequest(consistency common.Consistency, t common.NodePlacement) (common.Request, error) {
 
 	r := parser.r
 	line, err := parser.r.ReadString('\n')
@@ -139,6 +146,8 @@ func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
 		return nil, fmt.Errorf("Invalid or unsupported request")
 	}
 
+	override := GetRequestOverride(requestType, consistency)
+	quorumResponses, maxResponses := t.GetResponseCounts(override, consistency)
 	req := &RedisRequest{
 		BaseMessage :struct {
 			Id uint64
@@ -149,12 +158,15 @@ func (parser RedisRequestParser) GetNextRequest() (common.Request, error) {
 		},
 		requestType: requestType,
 		Name:        strings.ToUpper(string(firstArg)),
-		override:    GetRequestOverride(requestType),
+		override:    override,
 		ctx:         parser.owner,
 		Args:        args,
+		quorum_responses:quorumResponses,
+		max_responses: maxResponses,
+		received_responses:0,
 		done:        make(chan common.Response, 5), // TODO: this is a hack, ideally the reader of this channel should close the channel
 	}
 
-	req.hashCode = hashkit.GetHash(req.GetKey())
+	req.hashCode = hashkit.GetHash(req.getKey())
 	return req, nil
 }

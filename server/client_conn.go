@@ -10,8 +10,10 @@ import (
 )
 
 type ClientConn struct {
-	conn   net.Conn
-	Writer *bufio.Writer
+	conn         net.Conn
+	placement    common.NodePlacement
+	consistency  common.Consistency
+	Writer       *bufio.Writer
 	//forwardChan  chan common.Message
 	outQueue     chan common.Request
 	quit         chan int
@@ -22,9 +24,11 @@ func (c ClientConn) String() string {
 	return fmt.Sprintf("<CLIENT from %s>", c.conn.RemoteAddr())
 }
 
-func NewClientConnHandler(conn net.Conn, msgForwarder common.MsgForwarder) (common.Conn, error) {
+func NewClientConn(conn net.Conn, placement common.NodePlacement, msgForwarder common.MsgForwarder) (common.Conn, error) {
 	c := ClientConn{
 		conn:   conn,
+		placement:	placement,
+		consistency:common.DC_ONE,
 		Writer: bufio.NewWriter(conn),
 		//forwardChan: make(chan common.Message, 20000),
 		outQueue: make(chan common.Request, 20000),
@@ -62,7 +66,7 @@ func (c ClientConn) Run() error {
 	go c.responder()
 
 	for {
-		req, err := parser.GetNextRequest()
+		req, err := parser.GetNextRequest(c.consistency, c.placement)
 		if err != nil {
 			log.Println("Received Error ", err)
 			return err
