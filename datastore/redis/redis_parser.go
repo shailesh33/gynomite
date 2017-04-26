@@ -88,7 +88,7 @@ func (r *RedisRequest) Done() common.Response {
 
 func (r *RedisRequest) HandleResponse(rsp common.Response) error {
 	r.received_responses = r.received_responses + 1
-	log.Printf("request %s received responses %d max_responses %d", r.Name, r.received_responses, r.max_responses)
+	//log.Printf("request %s received responses %d max_responses %d", r.Name, r.received_responses, r.max_responses)
 	r.done <- rsp
 	return nil
 }

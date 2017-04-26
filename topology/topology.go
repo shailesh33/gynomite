@@ -22,7 +22,7 @@ type Topology struct {
 	forwardChan       chan common.Message
 }
 
-func (t Topology) getDC(dcName string) (*Datacenter, error) {
+func (t *Topology) getDC(dcName string) (*Datacenter, error) {
 	dc, ok := t.dcMap[strings.ToLower(dcName)]
 	if ok == true {
 		return dc, nil
@@ -30,7 +30,7 @@ func (t Topology) getDC(dcName string) (*Datacenter, error) {
 	return &Datacenter{}, fmt.Errorf("DC not found with name %s", dcName)
 }
 
-func (t Topology) addDC(dc *Datacenter) error {
+func (t *Topology) addDC(dc *Datacenter) error {
 	if _, err := t.getDC(dc.name); err == nil {
 		return fmt.Errorf("Adding duplicate DC with name", dc.name)
 	}
@@ -38,7 +38,7 @@ func (t Topology) addDC(dc *Datacenter) error {
 	return nil
 }
 
-func (t Topology) Print() {
+func (t *Topology) Print() {
 	log.Println("DC: " + t.myDC + " Rack: " + t.myRack)
 	for dcname, dc := range t.dcMap {
 		for rackname, rack := range dc.rackMap {
@@ -152,7 +152,7 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 	return topo, nil
 }
 
-func (t Topology) connect(c chan<- int) error {
+func (t *Topology) connect(c chan<- int) error {
 	var wg sync.WaitGroup
 	for _, dc := range t.dcMap {
 		for _, rack := range dc.rackMap {
@@ -175,7 +175,7 @@ func (t Topology) connect(c chan<- int) error {
 	return nil
 }
 
-func (t Topology) Start() error {
+func (t *Topology) Start() error {
 	go common.ListenAndServe(net.JoinHostPort(t.localNode.addr, strconv.Itoa(t.localNode.Port)), newPeerClientConn, t, t)
 
 	c := make(chan int, 1)
@@ -191,22 +191,22 @@ func (t Topology) Start() error {
 	return nil
 }
 
-func (t Topology) MsgForward(m common.Message) error {
+func (t *Topology) MsgForward(m common.Message) error {
 	t.forwardChan <- m
 	return nil
 }
 
-func (t Topology) GetLocalRackCount() int {
+func (t *Topology) GetLocalRackCount() int {
 	dc, _ := t.getDC(t.myDC)
 	return dc.getRackCount()
 }
 
-func (t Topology) GetDCCount() int {
+func (t *Topology) GetDCCount() int {
 	return len(t.dcMap)
 }
 
 
-func (t Topology) Run() error {
+func (t *Topology) Run() error {
 	for m := range t.forwardChan {
 		req := m.(common.Request)
 		//log.Printf("Forwarding %s", req)
@@ -224,7 +224,7 @@ func (t Topology) Run() error {
 	return nil
 }
 
-func (t Topology) preselectRacksForReplication() error {
+func (t *Topology) preselectRacksForReplication() error {
 	dc, err := t.getDC(t.myDC)
 	if err != nil {
 		return err
@@ -257,7 +257,7 @@ func (t Topology) preselectRacksForReplication() error {
 	return nil
 }
 
-func (t Topology) GetResponseCounts(override common.RoutingOverride, consistency common.Consistency) (int, int) {
+func (t *Topology) GetResponseCounts(override common.RoutingOverride, consistency common.Consistency) (int, int) {
 	maxResponses := 0
 	quorumResponses := 0
 	switch override {
