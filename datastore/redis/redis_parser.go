@@ -79,6 +79,7 @@ func (r *RedisRequest) Done() common.Response {
 	var rsp common.Response
 	select {
 	case rsp = <- r.done:
+		close(r.done)
 	case <- time.After(5 * time.Second):
 		log.Printf("req %s timedout", r)
 
@@ -87,6 +88,15 @@ func (r *RedisRequest) Done() common.Response {
 }
 
 func (r *RedisRequest) HandleResponse(rsp common.Response) error {
+	defer func() {
+		// recover from panic caused by writing to a closed channel
+		if r := recover(); r != nil {
+			//err := fmt.Errorf("%v", r)
+			//fmt.Printf("write: error writing %s on channel: %v\n", rsp, err)
+			return
+		}
+	}()
+
 	r.received_responses = r.received_responses + 1
 	//log.Printf("request %s received responses %d max_responses %d", r.Name, r.received_responses, r.max_responses)
 	r.done <- rsp

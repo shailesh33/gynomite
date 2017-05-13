@@ -5,6 +5,9 @@ import (
 	"bufio"
 	"log"
 	"net"
+	"bytes"
+	"time"
+	"fmt"
 )
 
 type DataStoreConn struct {
@@ -25,12 +28,76 @@ func NewDataStoreConn(conn net.Conn) (DataStoreConn, error) {
 		outQueue:    make(chan common.Message, 20000)}, nil
 }
 
+func (c DataStoreConn) batchIntoBuffer(reqs [] common.Message) (bytes.Buffer, error) {
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
+
+	for _, req := range reqs {
+		req.Write(writer)
+	}
+	return b, nil
+}
+
 func (c DataStoreConn) forwardRequestsToDatastore() error {
+	var req common.Message
+	var reqs []common.Message
+	var batchTimeout <-chan time.Time
+	var timedout bool
+	batchSize := 10
+
+	for {
+		if batchTimeout == nil {
+			batchTimeout = time.After(50 * time.Microsecond)
+		}
+
+		select {
+		case req = <-c.forwardChan:
+			c.outQueue <- req
+			timedout = false
+			// queue up the request
+			reqs = append(reqs, req)
+
+		case <-batchTimeout:
+			timedout = true
+		}
+
+		// After the batch delay we want to get the requests that do exist moving along
+		// Or, if there's enough to batch together, send them off
+		if (timedout && len(reqs) > 0) || len(reqs) >= int(batchSize) {
+
+			// Set batch timeout channel nil to reset it. Next batch will get a new timeout.
+			batchTimeout = nil
+
+			buf, err := c.batchIntoBuffer(reqs)
+			if err != nil {
+				return fmt.Errorf("Failed to batch requests")
+			}
+
+			// Write out the whole buffer
+			_, _ = c.Writer.Write(buf.Bytes())
+			c.Writer.Flush()
+			reqs = reqs[:0]
+		}
+
+		// block until a request comes in if there's a timeout earlier so this doesn't constantly spin
+		if timedout {
+			req = <-c.forwardChan
+			c.outQueue <- req
+			reqs = append(reqs, req)
+
+			// Reset timeout variables to base state
+			timedout = false
+			batchTimeout = nil
+		}
+	}
+/*
 	var m common.Message
+
+
 	for m = range c.forwardChan {
 		c.outQueue <- m
 		m.Write(c.Writer)
-	}
+	}*/
 	return nil
 }
 
@@ -44,7 +111,6 @@ func (c DataStoreConn) Run() error {
 			log.Println("Datastore: Failed to get next message", err)
 			return err
 		}
-
 		// to maintain ordering
 		m := <-c.outQueue
 		req := m.(common.Request)
