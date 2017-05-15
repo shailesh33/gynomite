@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
+	"bytes"
 )
 
 // Implement a connection handle
@@ -32,17 +34,78 @@ func newPeerConn(conn net.Conn) common.Conn {
 	}
 }
 
-func (c PeerConn) forwardRequestsToPeer() error {
-	var m common.Message
+func (c PeerConn) batchIntoBuffer(reqs [] common.Message) (bytes.Buffer, error) {
+	var b bytes.Buffer
+	writer := bufio.NewWriter(&b)
 
-	for m = range c.forwardChan {
-		c.outQueue <- m
-		//log.Println("Forwarded", m, " to", c, " outqueue:", len(c.outQueue))
-		err := m.Write(c.writer)
-		if err != nil {
-			log.Println("Error while sending to peer", err)
+	for _, req := range reqs {
+		req.Write(writer)
+	}
+	return b, nil
+}
+
+
+func (c PeerConn) forwardRequestsToPeer() error {
+	var req common.Message
+	var reqs []common.Message
+	var batchTimeout <-chan time.Time
+	var timedout bool
+	batchSize := 10
+
+	for {
+		if batchTimeout == nil {
+			batchTimeout = time.After(50 * time.Microsecond)
+		}
+
+		select {
+		case req = <-c.forwardChan:
+			c.outQueue <- req
+			timedout = false
+		// queue up the request
+			reqs = append(reqs, req)
+
+		case <-batchTimeout:
+			timedout = true
+		}
+
+		// After the batch delay we want to get the requests that do exist moving along
+		// Or, if there's enough to batch together, send them off
+		if (timedout && len(reqs) > 0) || len(reqs) >= int(batchSize) {
+
+			// Set batch timeout channel nil to reset it. Next batch will get a new timeout.
+			batchTimeout = nil
+
+			buf, err := c.batchIntoBuffer(reqs)
+			if err != nil {
+				return fmt.Errorf("Failed to batch requests")
+			}
+
+			// Write out the whole buffer
+			_, _ = c.writer.Write(buf.Bytes())
+			c.writer.Flush()
+			reqs = reqs[:0]
+		}
+
+		// block until a request comes in if there's a timeout earlier so this doesn't constantly spin
+		if timedout {
+			req = <-c.forwardChan
+			c.outQueue <- req
+			reqs = append(reqs, req)
+
+			// Reset timeout variables to base state
+			timedout = false
+			batchTimeout = nil
 		}
 	}
+	//var m common.Message
+	//
+	//for m = range c.forwardChan {
+	//	c.outQueue <- m
+	//	err := m.Write(c.writer)
+	//	if err != nil {
+	//		log.Println("Error while sending to peer", err)
+	//	}
+	//}
 	log.Printf("Peer loop exiting %s", c)
 
 	return nil
