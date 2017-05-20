@@ -18,7 +18,6 @@ import (
 	"io"
 	"sync"
 	_ "net/http/pprof"
-	"net/http"
 )
 
 var (
@@ -93,7 +92,7 @@ func main() {
 		log.Printf("Failed to connect to datastore %s", ds)
 		os.Exit(1)
 	}
-	go http.ListenAndServe(":6060", nil)
+	//go http.ListenAndServe(":6060", nil)
 	go common.ListenAndServe(conf.Pool.Listen, server.NewClientConn, topo, topo)
 
 	// Block forever

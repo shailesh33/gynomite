@@ -28,14 +28,15 @@ func NewDataStoreConn(conn net.Conn) (DataStoreConn, error) {
 		outQueue:    make(chan common.Message, 20000)}, nil
 }
 
-func (c DataStoreConn) batchIntoBuffer(reqs [] common.Message) (bytes.Buffer, error) {
-	var b bytes.Buffer
-	writer := bufio.NewWriter(&b)
-
+func (c DataStoreConn) batchIntoBuffer(reqs [] common.Message) (net.Buffers, error) {
+	var bufs net.Buffers
 	for _, req := range reqs {
+		var b bytes.Buffer
+		writer := bufio.NewWriter(&b)
 		req.Write(writer)
+		bufs = append(bufs, b.Bytes())
 	}
-	return b, nil
+	return bufs, nil
 }
 
 func (c DataStoreConn) forwardRequestsToDatastore() error {
@@ -68,13 +69,18 @@ func (c DataStoreConn) forwardRequestsToDatastore() error {
 			// Set batch timeout channel nil to reset it. Next batch will get a new timeout.
 			batchTimeout = nil
 
-			buf, err := c.batchIntoBuffer(reqs)
+			buffers, err := c.batchIntoBuffer(reqs)
 			if err != nil {
 				return fmt.Errorf("Failed to batch requests")
 			}
 
 			// Write out the whole buffer
-			_, _ = c.Writer.Write(buf.Bytes())
+			_, err = buffers.WriteTo(c.conn)
+			if err != nil {
+				log.Printf("Failed to write batch requests")
+
+			}
+			//_, _ = c.Writer.Write(buf.Bytes())
 			c.Writer.Flush()
 			reqs = reqs[:0]
 		}
