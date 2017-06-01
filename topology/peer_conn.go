@@ -51,11 +51,11 @@ func (c PeerConn) forwardRequestsToPeer() error {
 	var reqs []common.Message
 	var batchTimeout <-chan time.Time
 	var timedout bool
-	batchSize := 10
+	batchSize := 100
 
 	for {
 		if batchTimeout == nil {
-			batchTimeout = time.After(50 * time.Microsecond)
+			batchTimeout = time.After(250 * time.Microsecond)
 		}
 
 		select {
