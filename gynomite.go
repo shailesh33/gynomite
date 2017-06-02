@@ -16,8 +16,9 @@ import (
 	"github.com/shailesh33/gynomite/server"
 
 	"io"
-	"runtime"
 	"sync"
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var (
@@ -55,7 +56,6 @@ func init() {
 }
 
 func main() {
-	runtime.GOMAXPROCS(1)
 	if len(logFileName) > 0 {
 		file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
@@ -93,7 +93,7 @@ func main() {
 		log.Printf("Failed to connect to datastore %s", ds)
 		os.Exit(1)
 	}
-
+	go http.ListenAndServe(":6060", nil)
 	go common.ListenAndServe(conf.Pool.Listen, server.NewClientConn, topo, topo)
 
 	// Block forever
