@@ -5,12 +5,13 @@ import (
 	"bufio"
 	"log"
 	"net"
+	"io"
 )
 
 type DataStoreConn struct {
 	//common.Conn
 	conn        net.Conn
-	Writer      *bufio.Writer
+	Writer      io.Writer
 	forwardChan chan common.Message
 	outQueue    chan common.Message
 }
@@ -20,7 +21,7 @@ func NewDataStoreConn(conn net.Conn) (DataStoreConn, error) {
 
 	return DataStoreConn{
 		conn:        conn,
-		Writer:      bufio.NewWriter(conn),
+		Writer:      conn,
 		forwardChan: make(chan common.Message, 20000),
 		outQueue:    make(chan common.Message, 20000)}, nil
 }
@@ -28,6 +29,7 @@ func NewDataStoreConn(conn net.Conn) (DataStoreConn, error) {
 func (c DataStoreConn) forwardRequestsToDatastore() error {
 	var m common.Message
 	for m = range c.forwardChan {
+		log.Printf("here, %s", m)
 		c.outQueue <- m
 		m.Write(c.Writer)
 	}
@@ -44,7 +46,7 @@ func (c DataStoreConn) Run() error {
 			log.Println("Datastore: Failed to get next message", err)
 			return err
 		}
-
+		log.Printf("here %s", rsp)
 		// to maintain ordering
 		m := <-c.outQueue
 		req := m.(common.Request)

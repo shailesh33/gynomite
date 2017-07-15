@@ -13,7 +13,6 @@ type ClientConn struct {
 	conn         net.Conn
 	placement    common.NodePlacement
 	consistency  common.Consistency
-	Writer       *bufio.Writer
 	//forwardChan  chan common.Message
 	outQueue     chan common.Request
 	quit         chan int
@@ -29,7 +28,6 @@ func NewClientConn(conn net.Conn, placement common.NodePlacement, msgForwarder c
 		conn:   conn,
 		placement:	placement,
 		consistency:common.DC_ONE,
-		Writer: bufio.NewWriter(conn),
 		//forwardChan: make(chan common.Message, 20000),
 		outQueue: make(chan common.Request, 20000),
 		quit:     make(chan int), msgForwarder: msgForwarder}
@@ -45,7 +43,7 @@ func (c *ClientConn) responder() {
 			req := m.(common.Request)
 			rsp := req.Done()
 			//log.Printf("Received Response for request %s", req)
-			rsp.Write(c.Writer)
+			rsp.Write(c.conn)
 		case <-c.quit:
 			log.Println("Client loop exiting", c)
 			return

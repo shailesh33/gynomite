@@ -12,7 +12,7 @@ type PeerClientConn struct {
 	conn         net.Conn
 	placement	common.NodePlacement
 	writer       *bufio.Writer
-	outQueue     chan PeerMessage
+	outQueue     chan *PeerMessage
 	quit         chan int
 	msgForwarder common.MsgForwarder
 }
@@ -27,7 +27,7 @@ func newPeerClientConn(conn net.Conn, placement common.NodePlacement, msgForward
 		conn:     conn,
 		placement:	  placement,
 		writer:   bufio.NewWriter(conn),
-		outQueue: make(chan PeerMessage, 20000),
+		outQueue: make(chan *PeerMessage, 20000),
 		quit:     make(chan int), msgForwarder: msgForwarder}, nil
 }
 

@@ -1,7 +1,7 @@
 package common
 
 import (
-	"bufio"
+	"io"
 )
 
 type MessageType int
@@ -26,7 +26,7 @@ const (
 type Message interface {
 	GetId()		uint64
 	GetType() MessageType
-	Write(w *bufio.Writer) error
+	Write(w io.Writer) error
 }
 
 type Context interface {

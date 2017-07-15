@@ -7,9 +7,9 @@ import (
 
 	"github.com/shailesh33/gynomite/common"
 	"github.com/shailesh33/gynomite/hashkit"
-	"strconv"
 	"time"
 	"log"
+	"io"
 )
 
 type RedisRequest struct {
@@ -39,23 +39,13 @@ func (r *RedisRequest) SetRoutingOverride(newOverride common.RoutingOverride) {
 	r.override = newOverride
 }
 
-func (r *RedisRequest) Write(w *bufio.Writer) error {
-	w.WriteByte('*')
-	w.WriteString(strconv.Itoa(len(r.Args) + 1))
-	w.WriteString("\r\n")
-	w.WriteByte('$')
-	w.WriteString(strconv.Itoa(len(r.Name)))
-	w.WriteString("\r\n")
-	w.WriteString(r.Name)
-	w.WriteString("\r\n")
+func (r *RedisRequest) Write(w io.Writer) error {
+	fmt.Fprintf(w, "*%d\r\n$%d\r\n%s\r\n", len(r.Args)+1, len(r.Name), r.Name)
+
 	for _, i := range r.Args {
-		w.WriteByte('$')
-		w.WriteString(strconv.Itoa(len(i)))
-		w.WriteString("\r\n")
-		w.Write(i)
-		w.WriteString("\r\n")
+		fmt.Fprintf(w, "$%d\r\n%s\r\n", len(i), string(i))
 	}
-	w.Flush()
+
 	return nil
 }
 

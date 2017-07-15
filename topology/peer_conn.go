@@ -25,7 +25,7 @@ func newPeerConn(conn net.Conn) common.Conn {
 	log.Println("Creating new peer conn")
 	return PeerConn{
 		conn:        conn,
-		writer:      bufio.NewWriter(conn),
+		writer:      bufio.NewWriterSize(conn, 1024*64),
 		forwardChan: make(chan common.Message, 20000),
 		outQueue:    make(chan common.Message, 20000),
 		quit:        make(chan int),
@@ -70,9 +70,11 @@ func (c PeerConn) Run() error {
 		// to maintain ordering
 		m := <-c.outQueue
 		//log.Printf("%s Received response for %s", c, m)
-		peerMessage := m.(PeerMessage)
+		peerMessage := m.(*PeerMessage)
 		req := peerMessage.M.(common.Request)
-		req.HandleResponse(rsp.M)
+		req.HandleResponse(rsp)
+		//peerMessagePool.Put(rsp)
+		peerMessagePool.Put(peerMessage)
 	}
 	return nil
 }
