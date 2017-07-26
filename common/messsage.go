@@ -23,7 +23,7 @@ const (
 
 //////////////////////////
 // This is a generic message that flow in the system
-type Message interface {
+type IMessage interface {
 	GetId()		uint64
 	GetType() MessageType
 	Write(w *bufio.Writer) error
@@ -33,30 +33,30 @@ type Context interface {
 }
 
 // This is a request, could be a datastore request or a dnode request
-type Request interface {
-	Message
+type IRequest interface {
+	IMessage
 	GetContext() Context
 	GetHashCode() uint32
 	GetRoutingOverride() RoutingOverride
 	SetRoutingOverride(RoutingOverride)
 	SetResponseCounts(quorumResponses, maxResponses int)
-	Done() Response
-	HandleResponse(Response) error
+	Done() IResponse
+	HandleResponse(IResponse) error
 }
 
 // This is a response, could be a datastore response or a dnode response
-type Response interface {
-	Message
+type IResponse interface {
+	IMessage
 }
 
 // This is an interface that parses request from the stream of data typically from the client.
-type RequestParser interface {
-	GetNextRequest(Consistency, NodePlacement) (Request, error)
+type IRequestParser interface {
+	GetNextRequest(Consistency, INodePlacement) (IRequest, error)
 }
 
 // This is an interfact that parses request from the stream of data typically from the underlying datastore.
-type ResponseParser interface {
-	GetNextResponse() (Response, error)
+type IResponseParser interface {
+	GetNextResponse() (IResponse, error)
 }
 
 type BaseMessage struct {
@@ -72,11 +72,11 @@ func (m BaseMessage) GetType() MessageType {
 	return m.MsgType
 }
 
-type MsgForwarder interface {
-	MsgForward(Message) error
+type IMsgForwarder interface {
+	MsgForward(IMessage) error
 }
 
-type NodePlacement interface {
+type INodePlacement interface {
 	GetResponseCounts(RoutingOverride, Consistency) (quorumResponses, maxResponses int)
 	GetLocalRackCount() int
 	GetDCCount() int

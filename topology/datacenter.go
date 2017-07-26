@@ -59,7 +59,7 @@ func (dc *Datacenter) preselectRack(index int) {
 	dc.preSelectedRackName = selectedRackName
 }
 
-func (dc *Datacenter) MsgForward(req common.Request) error {
+func (dc *Datacenter) MsgForward(req common.IRequest) error {
 
 	// This is a local dc, check if it needs to be sent to all the racks
 	// otherwise send to preselected rack

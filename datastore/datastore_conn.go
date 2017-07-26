@@ -11,8 +11,8 @@ type DataStoreConn struct {
 	//common.Conn
 	conn        net.Conn
 	Writer      *bufio.Writer
-	forwardChan chan common.Message
-	outQueue    chan common.Message
+	forwardChan chan common.IMessage
+	outQueue    chan common.IMessage
 }
 
 func NewDataStoreConn(conn net.Conn) (DataStoreConn, error) {
@@ -21,12 +21,12 @@ func NewDataStoreConn(conn net.Conn) (DataStoreConn, error) {
 	return DataStoreConn{
 		conn:        conn,
 		Writer:      bufio.NewWriter(conn),
-		forwardChan: make(chan common.Message, 20000),
-		outQueue:    make(chan common.Message, 20000)}, nil
+		forwardChan: make(chan common.IMessage, 20000),
+		outQueue:    make(chan common.IMessage, 20000)}, nil
 }
 
 func (c DataStoreConn) forwardRequestsToDatastore() error {
-	var m common.Message
+	var m common.IMessage
 	for m = range c.forwardChan {
 		c.outQueue <- m
 		m.Write(c.Writer)
@@ -47,13 +47,13 @@ func (c DataStoreConn) Run() error {
 
 		// to maintain ordering
 		m := <-c.outQueue
-		req := m.(common.Request)
+		req := m.(common.IRequest)
 		req.HandleResponse(rsp)
 	}
 	return nil
 }
 
-func (c DataStoreConn) MsgForward(msg common.Message) error {
+func (c DataStoreConn) MsgForward(msg common.IMessage) error {
 	c.forwardChan <- msg
 	return nil
 }

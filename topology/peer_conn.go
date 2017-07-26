@@ -12,8 +12,8 @@ import (
 type PeerConn struct {
 	conn        net.Conn
 	writer      *bufio.Writer
-	outQueue    chan common.Message
-	forwardChan chan common.Message
+	outQueue    chan common.IMessage
+	forwardChan chan common.IMessage
 	quit        chan int
 }
 
@@ -26,14 +26,14 @@ func newPeerConn(conn net.Conn) common.Conn {
 	return PeerConn{
 		conn:        conn,
 		writer:      bufio.NewWriter(conn),
-		forwardChan: make(chan common.Message, 20000),
-		outQueue:    make(chan common.Message, 20000),
+		forwardChan: make(chan common.IMessage, 20000),
+		outQueue:    make(chan common.IMessage, 20000),
 		quit:        make(chan int),
 	}
 }
 
 func (c PeerConn) forwardRequestsToPeer() error {
-	var m common.Message
+	var m common.IMessage
 
 	for m = range c.forwardChan {
 		c.outQueue <- m
@@ -71,13 +71,13 @@ func (c PeerConn) Run() error {
 		m := <-c.outQueue
 		//log.Printf("%s Received response for %s", c, m)
 		peerMessage := m.(PeerMessage)
-		req := peerMessage.M.(common.Request)
+		req := peerMessage.M.(common.IRequest)
 		req.HandleResponse(rsp.M)
 	}
 	return nil
 }
 
-func (c PeerConn) MsgForward(msg common.Message) error {
+func (c PeerConn) MsgForward(msg common.IMessage) error {
 	c.forwardChan <- msg
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 type Conn interface {
 	Run() error
 	//Handle(Message) error  // Handle the message read
-	MsgForward(Message) error // Forward a message to this connection
+	MsgForward(IMessage) error // Forward a message to this connection
 }
 
 type Consistency int
@@ -18,4 +18,4 @@ const (
 	DC_SAFE_QUORUM
 )
 
-type ConnCreator func(net.Conn, NodePlacement, MsgForwarder) (Conn, error)
+type ConnCreator func(net.Conn, INodePlacement, IMsgForwarder) (Conn, error)

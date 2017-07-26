@@ -83,7 +83,7 @@ func GetDatastoreConn() DataStoreConn {
 	return gDatastoreConn
 }
 
-func NewRequestParser(reader *bufio.Reader, owner common.Context) common.RequestParser {
+func NewRequestParser(reader *bufio.Reader, owner common.Context) common.IRequestParser {
 	switch gdatastore {
 	case REDIS:
 		return datastore.NewRedisRequestParser(reader, owner)
@@ -92,7 +92,7 @@ func NewRequestParser(reader *bufio.Reader, owner common.Context) common.Request
 	return nil
 }
 
-func NewResponseParser(reader *bufio.Reader) common.ResponseParser {
+func NewResponseParser(reader *bufio.Reader) common.IResponseParser {
 	switch gdatastore {
 	case REDIS:
 		return datastore.NewRedisResponseParser(reader)

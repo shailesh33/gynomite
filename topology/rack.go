@@ -67,7 +67,7 @@ func (r *Rack)GetTokenForHash(hashCode uint32) uint32{
 	}
 }
 
-func (r *Rack) MsgForward(req common.Request) error {
+func (r *Rack) MsgForward(req common.IRequest) error {
 	if req.GetRoutingOverride() == common.ROUTING_LOCAL_NODE_ONLY {
 
 		localNode, err := r.getNode(r.t.myToken)

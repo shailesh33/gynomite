@@ -11,27 +11,27 @@ import (
 
 type ClientConn struct {
 	conn         net.Conn
-	placement    common.NodePlacement
+	placement    common.INodePlacement
 	consistency  common.Consistency
 	Writer       *bufio.Writer
 	//forwardChan  chan common.Message
-	outQueue     chan common.Request
+	outQueue     chan common.IRequest
 	quit         chan int
-	msgForwarder common.MsgForwarder
+	msgForwarder common.IMsgForwarder
 }
 
 func (c ClientConn) String() string {
 	return fmt.Sprintf("<CLIENT from %s>", c.conn.RemoteAddr())
 }
 
-func NewClientConn(conn net.Conn, placement common.NodePlacement, msgForwarder common.MsgForwarder) (common.Conn, error) {
+func NewClientConn(conn net.Conn, placement common.INodePlacement, msgForwarder common.IMsgForwarder) (common.Conn, error) {
 	c := ClientConn{
 		conn:   conn,
 		placement:	placement,
 		consistency:common.DC_ONE,
 		Writer: bufio.NewWriter(conn),
 		//forwardChan: make(chan common.Message, 20000),
-		outQueue: make(chan common.Request, 20000),
+		outQueue: make(chan common.IRequest, 20000),
 		quit:     make(chan int), msgForwarder: msgForwarder}
 	log.Printf("New client connection %s", c)
 	return c, nil
@@ -42,7 +42,7 @@ func (c *ClientConn) responder() {
 		select {
 		case m := <-c.outQueue:
 			// Wait for this request to be done
-			req := m.(common.Request)
+			req := m.(common.IRequest)
 			rsp := req.Done()
 			//log.Printf("Received Response for request %s", req)
 			rsp.Write(c.Writer)
@@ -78,7 +78,7 @@ func (c ClientConn) Run() error {
 	return nil
 }
 
-func (c ClientConn) MsgForward(m common.Message) error {
+func (c ClientConn) MsgForward(m common.IMessage) error {
 	log.Panicf("%s does not implement MsgForward", c)
 	return nil
 }

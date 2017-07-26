@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func ListenAndServe(listen string, chc ConnCreator, placement NodePlacement, msgForwarder MsgForwarder) {
+func ListenAndServe(listen string, chc ConnCreator, placement INodePlacement, msgForwarder IMsgForwarder) {
 	listener, err := net.Listen("tcp", listen)
 	if err != nil {
 		log.Println("Error listening on ", listen, err.Error())
@@ -22,7 +22,7 @@ func ListenAndServe(listen string, chc ConnCreator, placement NodePlacement, msg
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go func(conn net.Conn, placement NodePlacement, msgForwarder MsgForwarder) {
+		go func(conn net.Conn, placement INodePlacement, msgForwarder IMsgForwarder) {
 			c, err := chc(conn, placement, msgForwarder)
 			if err != nil {
 				log.Println("Failed to handle client ", err)

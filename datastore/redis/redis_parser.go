@@ -23,8 +23,8 @@ type RedisRequest struct {
 	quorum_responses int
 	max_responses	int
 	received_responses int
-	responses   []common.Response
-	done        chan common.Response
+	responses   []common.IResponse
+	done        chan common.IResponse
 }
 
 func (r *RedisRequest) GetHashCode() uint32 {
@@ -74,9 +74,9 @@ func (r *RedisRequest) String() string {
 	return fmt.Sprintf("<%v %s '%s' Hash:%d Routing:%d>", r.Id, r.Name, r.getKey(), r.GetHashCode(), r.GetRoutingOverride())
 }
 
-func (r *RedisRequest) Done() common.Response {
+func (r *RedisRequest) Done() common.IResponse {
 	// TODO: Implement some timeout here
-	var rsp common.Response
+	var rsp common.IResponse
 	select {
 	case rsp = <- r.done:
 	case <- time.After(5 * time.Second):
@@ -86,7 +86,7 @@ func (r *RedisRequest) Done() common.Response {
 	return rsp
 }
 
-func (r *RedisRequest) HandleResponse(rsp common.Response) error {
+func (r *RedisRequest) HandleResponse(rsp common.IResponse) error {
 	r.received_responses = r.received_responses + 1
 	//log.Printf("request %s received responses %d max_responses %d", r.Name, r.received_responses, r.max_responses)
 	r.done <- rsp
@@ -109,7 +109,7 @@ func NewRedisRequestParser(r *bufio.Reader, owner common.Context) RedisRequestPa
 	return RedisRequestParser{r: r, owner: owner}
 }
 
-func (parser RedisRequestParser) GetNextRequest(consistency common.Consistency, t common.NodePlacement) (common.Request, error) {
+func (parser RedisRequestParser) GetNextRequest(consistency common.Consistency, t common.INodePlacement) (common.IRequest, error) {
 
 	r := parser.r
 	line, err := parser.r.ReadString('\n')
@@ -164,7 +164,7 @@ func (parser RedisRequestParser) GetNextRequest(consistency common.Consistency, 
 		quorum_responses:quorumResponses,
 		max_responses: maxResponses,
 		received_responses:0,
-		done:        make(chan common.Response, 5), // TODO: this is a hack, ideally the reader of this channel should close the channel
+		done:        make(chan common.IResponse, 5), // TODO: this is a hack, ideally the reader of this channel should close the channel
 	}
 
 	req.hashCode = hashkit.GetHash(req.getKey())

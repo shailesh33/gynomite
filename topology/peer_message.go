@@ -10,22 +10,22 @@ import (
 )
 
 type Handler interface {
-	Handle(common.Message) error
+	Handle(common.IMessage) error
 }
 
 type MsgForwarder interface {
-	MsgForward(common.Message) error
+	MsgForward(common.IMessage) error
 }
 
 type PeerMessage struct {
-	 //"   $2014$ <msg_id> <type> <flags> <version> <is_same_dc> *<keylen> <key> *<payload_len>\r\n"
-	 // type:
-	 // flags: uint8, 0x01 if encrypted
-	 // version: 1
-	 // is_same_dc: 0 or 1
-	 // keylen: length of aes key or 1
-	 // key: encrypted aes key or 'd'
-	 // payload_len: length of payload
+				 //"   $2014$ <msg_id> <type> <flags> <version> <is_same_dc> *<keylen> <key> *<payload_len>\r\n"
+				 // type:
+				 // flags: uint8, 0x01 if encrypted
+				 // version: 1
+				 // is_same_dc: 0 or 1
+				 // keylen: length of aes key or 1
+				 // key: encrypted aes key or 'd'
+				 // payload_len: length of payload
 	common.BaseMessage
 	Flags   uint8
 	Version uint8
@@ -33,7 +33,7 @@ type PeerMessage struct {
 	KeyLength uint16
 	Key	string
 	PayloadLength uint64
-	M	common.Message // holds the message
+	M	common.IMessage // holds the message
 
 	ctx         common.Context
 
@@ -43,7 +43,7 @@ func (m PeerMessage) String() string {
 	return fmt.Sprintf("<PEER Message %v %s", m.Id, m.M)
 }
 
-func NewPeerMessage(n *Node, m common.Message) PeerMessage {
+func NewPeerMessage(n *Node, m common.IMessage) PeerMessage {
 	return PeerMessage{
 		BaseMessage : common.BaseMessage{
 			Id:common.GetNextId(),
@@ -98,9 +98,9 @@ func (m PeerMessage) Write(w *bufio.Writer) error {
 
 }
 
-func (r PeerMessage) Done() common.Response {
+func (r PeerMessage) Done() common.IResponse {
 	// TODO: Implement some timeout here
-	req := r.M.(common.Request)
+	req := r.M.(common.IRequest)
 	return req.Done()
 }
 
@@ -117,7 +117,7 @@ func newPeerMessageParser(r *bufio.Reader, owner common.Context) PeerMessagePars
 	return PeerMessageParser{r: r, owner: owner}
 }
 
-func (parser PeerMessageParser) GetNextPeerMessage(placement common.NodePlacement) (PeerMessage, error) {
+func (parser PeerMessageParser) GetNextPeerMessage(placement common.INodePlacement) (PeerMessage, error) {
 	r := parser.r
 	line, err := r.ReadString('\n')
 	if err != nil {
@@ -177,14 +177,14 @@ func (parser PeerMessageParser) GetNextPeerMessage(placement common.NodePlacemen
 	return m, nil
 }
 
-func (parser PeerMessageParser) GetNextPeerResponse() (PeerMessage, error) {
+func (parser PeerMessageParser) GetNextPeerResponse() (*PeerMessage, error) {
 	r := parser.r
 	line, err := r.ReadString('\n')
 	if err != nil {
-		return PeerMessage{}, err
+		return nil, err
 	}
 	if len(line) == 0 {
-		return PeerMessage{}, fmt.Errorf("Empty line")
+		return nil, fmt.Errorf("Empty line")
 	}
 
 	var msgId	uint64
@@ -199,7 +199,7 @@ func (parser PeerMessageParser) GetNextPeerResponse() (PeerMessage, error) {
 	//"   $2014$ <msg_id> <type> <flags> <version> <is_same_dc> *<keylen> <key> *<payload_len>\r\n"
 	if _, err := fmt.Sscanf(line, "   $2014$ %d %d %d %d %d *%d %s *%d\r\n",
 		&msgId, &msgType, &flags, &version, &isSameDC, &keyLength, &key, &payloadLength); err != nil {
-		return PeerMessage{}, fmt.Errorf("invalid arguments in ", line)
+		return nil, fmt.Errorf("invalid arguments in ", line)
 	}
 	m := PeerMessage{
 		BaseMessage : common.BaseMessage {
@@ -222,10 +222,10 @@ func (parser PeerMessageParser) GetNextPeerResponse() (PeerMessage, error) {
 		datastoreParser := datastore.NewResponseParser(parser.r)
 		rsp, err := datastoreParser.GetNextResponse()
 		if err != nil {
-			return PeerMessage{}, fmt.Errorf("Failed to parse response from peer", err)
+			return nil, fmt.Errorf("Failed to parse response from peer", err)
 		}
 
 		m.M = rsp
 	}
-	return m, nil
+	return &m, nil
 }

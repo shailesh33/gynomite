@@ -79,11 +79,11 @@ func (n *Node) connect() error {
 	return err
 }
 
-func (n *Node) MsgForward(m common.Message) error {
+func (n *Node) MsgForward(m common.IMessage) error {
 	//log.Printf("Node %s Received %s", n, m)
 
 	if n.isLocalNode {
-		req := m.(common.Request)
+		req := m.(common.IRequest)
 		// forward to datastore connection
 		dataStoreConn := datastore.GetDatastoreConn()
 		//log.Printf("Node Received %s", req)

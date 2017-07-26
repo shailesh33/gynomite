@@ -19,7 +19,7 @@ type Topology struct {
 	myToken		  uint32
 	dcMap             map[string]*Datacenter
 	localNode         *Node
-	forwardChan       chan common.Message
+	forwardChan       chan common.IMessage
 }
 
 func (t *Topology) getDC(dcName string) (*Datacenter, error) {
@@ -60,7 +60,7 @@ func InitTopology(conf conf.Conf) (*Topology, error) {
 		myDC:              conf.Pool.Datacenter,
 		myRack:            conf.Pool.Rack,
 		dcMap:             make(map[string]*Datacenter),
-		forwardChan:       make(chan common.Message, 20000),
+		forwardChan:       make(chan common.IMessage, 20000),
 	}
 
 	// add local node
@@ -191,7 +191,7 @@ func (t *Topology) Start() error {
 	return nil
 }
 
-func (t *Topology) MsgForward(m common.Message) error {
+func (t *Topology) MsgForward(m common.IMessage) error {
 	t.forwardChan <- m
 	return nil
 }
@@ -208,7 +208,7 @@ func (t *Topology) GetDCCount() int {
 
 func (t *Topology) Run() error {
 	for m := range t.forwardChan {
-		req := m.(common.Request)
+		req := m.(common.IRequest)
 		//log.Printf("Forwarding %s", req)
 		for _, dc := range t.dcMap {
 			// check if this message should be forwarded

@@ -10,18 +10,18 @@ import (
 
 type PeerClientConn struct {
 	conn         net.Conn
-	placement	common.NodePlacement
+	placement	common.INodePlacement
 	writer       *bufio.Writer
 	outQueue     chan PeerMessage
 	quit         chan int
-	msgForwarder common.MsgForwarder
+	msgForwarder common.IMsgForwarder
 }
 
 func (c PeerClientConn) String() string {
 	return fmt.Sprintf("<Peer Client connection from %s>", c.conn.RemoteAddr())
 }
 
-func newPeerClientConn(conn net.Conn, placement common.NodePlacement, msgForwarder common.MsgForwarder) (common.Conn, error) {
+func newPeerClientConn(conn net.Conn, placement common.INodePlacement, msgForwarder common.IMsgForwarder) (common.Conn, error) {
 	log.Println("Creating new Peer client conn")
 	return PeerClientConn{
 		conn:     conn,
@@ -76,8 +76,8 @@ func (c PeerClientConn) Run() error {
 	return nil
 }
 
-func (c PeerClientConn) MsgForward(m common.Message) error {
-	log.Panicf("%s does not implement MsgForward")
+func (c PeerClientConn) MsgForward(m common.IMessage) error {
+	log.Panicf("%s does not implement MsgForward", m)
 	return nil
 }
 
