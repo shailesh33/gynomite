@@ -101,18 +101,16 @@ func (r *RedisRequest) SetResponseCounts(quorumResponses, maxResponses int) {
 
 // Redis request Parser
 type RedisRequestParser struct {
-	r     *bufio.Reader
-	owner common.Context
 }
 
-func NewRedisRequestParser(r *bufio.Reader, owner common.Context) RedisRequestParser {
-	return RedisRequestParser{r: r, owner: owner}
+func NewRedisRequestParser() RedisRequestParser {
+	return RedisRequestParser{}
 }
 
-func (parser RedisRequestParser) GetNextRequest(consistency common.Consistency, t common.INodePlacement) (common.IRequest, error) {
+func (parser RedisRequestParser) GetNextRequest(owner common.Context, r *bufio.Reader, consistency common.Consistency,
+			t common.INodePlacement) (common.IRequest, error) {
 
-	r := parser.r
-	line, err := parser.r.ReadString('\n')
+	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +157,7 @@ func (parser RedisRequestParser) GetNextRequest(consistency common.Consistency, 
 		requestType: requestType,
 		Name:        strings.ToUpper(string(firstArg)),
 		override:    override,
-		ctx:         parser.owner,
+		ctx:         owner,
 		Args:        args,
 		quorum_responses:quorumResponses,
 		max_responses: maxResponses,

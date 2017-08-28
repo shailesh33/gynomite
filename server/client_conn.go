@@ -61,12 +61,13 @@ func (c ClientConn) Run() error {
 		close(c.quit)
 		//TODO: wait for responder to finish here
 	}(c)
-	parser := datastore.NewRequestParser(bufio.NewReader(c.conn), c)
+	reader := bufio.NewReader(c.conn)
+	parser := datastore.NewRequestParser()
 
 	go c.responder()
 
 	for {
-		req, err := parser.GetNextRequest(c.consistency, c.placement)
+		req, err := parser.GetNextRequest(c, reader, c.consistency, c.placement)
 		if err != nil {
 			log.Println("Received Error ", err)
 			return err

@@ -56,7 +56,8 @@ func (c PeerConn) Run() error {
 
 	log.Printf("Running Loop for %s", c)
 	//parser := datastore.NewResponseParser(bufio.NewReader(c.conn))
-	parser := newPeerMessageParser(bufio.NewReader(c.conn), c)
+	reader := bufio.NewReader(c.conn)
+	parser := newPeerMessageParser(reader, c)
 	go c.forwardRequestsToPeer()
 	for {
 		//log.Printf("%s Waiting for response", c)

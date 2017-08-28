@@ -51,12 +51,12 @@ type IResponse interface {
 
 // This is an interface that parses request from the stream of data typically from the client.
 type IRequestParser interface {
-	GetNextRequest(Consistency, INodePlacement) (IRequest, error)
+	GetNextRequest(Context, *bufio.Reader, Consistency, INodePlacement) (IRequest, error)
 }
 
 // This is an interfact that parses request from the stream of data typically from the underlying datastore.
 type IResponseParser interface {
-	GetNextResponse() (IResponse, error)
+	GetNextResponse(*bufio.Reader) (IResponse, error)
 }
 
 type BaseMessage struct {

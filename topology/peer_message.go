@@ -159,8 +159,8 @@ func (parser PeerMessageParser) GetNextPeerMessage(placement common.INodePlaceme
 	// depending on the message type, call the right parser and add it in PeerMessage::m
 	switch m.MsgType {
 	case common.REQUEST_DATASTORE:
-		datastoreParser := datastore.NewRequestParser(parser.r, parser.owner)
-		req, err := datastoreParser.GetNextRequest(common.DC_ONE, placement)
+		datastoreParser := datastore.NewRequestParser()
+		req, err := datastoreParser.GetNextRequest(parser.owner, parser.r, common.DC_ONE, placement)
 		if err != nil {
 			return PeerMessage{}, fmt.Errorf("Failed to parse request from peer", err)
 		}
@@ -219,8 +219,8 @@ func (parser PeerMessageParser) GetNextPeerResponse() (*PeerMessage, error) {
 	// depending on the message type, call the right parser and add it in PeerMessage::m
 	switch m.MsgType {
 	case common.RESPONSE_DATASTORE:
-		datastoreParser := datastore.NewResponseParser(parser.r)
-		rsp, err := datastoreParser.GetNextResponse()
+		datastoreParser := datastore.NewResponseParser()
+		rsp, err := datastoreParser.GetNextResponse(parser.r)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to parse response from peer", err)
 		}

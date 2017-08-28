@@ -4,7 +4,6 @@ import (
 	"github.com/shailesh33/gynomite/common"
 	"github.com/shailesh33/gynomite/conf"
 	"github.com/shailesh33/gynomite/datastore/redis"
-	"bufio"
 	"fmt"
 	"log"
 	"net"
@@ -83,19 +82,19 @@ func GetDatastoreConn() DataStoreConn {
 	return gDatastoreConn
 }
 
-func NewRequestParser(reader *bufio.Reader, owner common.Context) common.IRequestParser {
+func NewRequestParser() common.IRequestParser {
 	switch gdatastore {
 	case REDIS:
-		return datastore.NewRedisRequestParser(reader, owner)
+		return datastore.NewRedisRequestParser()
 	}
 	log.Panicln("Unsupported datastore")
 	return nil
 }
 
-func NewResponseParser(reader *bufio.Reader) common.IResponseParser {
+func NewResponseParser() common.IResponseParser {
 	switch gdatastore {
 	case REDIS:
-		return datastore.NewRedisResponseParser(reader)
+		return datastore.NewRedisResponseParser()
 	}
 	log.Panicln("Unsupported datastore")
 	return nil

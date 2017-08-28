@@ -31,8 +31,7 @@ func (r nilResponse) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func (parser redisResponseParser) parseNilResponse() (common.IResponse, error) {
-	r := parser.r
+func (parser redisResponseParser) parseNilResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -71,8 +70,7 @@ func (r integerResponse) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func (parser redisResponseParser) parseIntegerResponse() (common.IResponse, error) {
-	r := parser.r
+func (parser redisResponseParser) parseIntegerResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -108,8 +106,7 @@ func NewStatusResponse(s string) *StatusResponse {
 	}
 }
 
-func (parser redisResponseParser) parseStatusResponse() (common.IResponse, error) {
-	r := parser.r
+func (parser redisResponseParser) parseStatusResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -153,8 +150,7 @@ func NewErrorResponse(s string) *ErrorResponse {
 	}
 }
 
-func (parser redisResponseParser) parseErrorResponse() (common.IResponse, error) {
-	r := parser.r
+func (parser redisResponseParser) parseErrorResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -197,8 +193,7 @@ func NewStringResponse(b []byte) *StringResponse {
 	}
 }
 
-func (parser redisResponseParser) parseStringResponse() (common.IResponse, error) {
-	r := parser.r
+func (parser redisResponseParser) parseStringResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 
 	if err != nil {
@@ -288,9 +283,8 @@ func NewArrayResponse() *ArrayResponse {
 
 //TODO: The array response can have different types of elements in it
 // For example it could be array with few integers, some strings etc.
-func (parser redisResponseParser) parseArrayResponse() (common.IResponse, error) {
+func (parser redisResponseParser) parseArrayResponse(r *bufio.Reader) (common.IResponse, error) {
 	rsp := NewArrayResponse()
-	r := parser.r
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -305,7 +299,7 @@ func (parser redisResponseParser) parseArrayResponse() (common.IResponse, error)
 	}
 	rsp.elems = make([]common.IResponse, num)
 	for i := 0; i < num; i += 1 {
-		rsp.elems[i], err = parser.GetNextResponse()
+		rsp.elems[i], err = parser.GetNextResponse(r)
 		//if rsp.elems[i], err = readArgument(r); err != nil {
 		if err != nil {
 			log.Println("Received error ", err)
@@ -318,16 +312,15 @@ func (parser redisResponseParser) parseArrayResponse() (common.IResponse, error)
 
 // Redis Response Parser
 type redisResponseParser struct {
-	r *bufio.Reader
 }
 
-func NewRedisResponseParser(r *bufio.Reader) redisResponseParser {
-	return redisResponseParser{r: r}
+func NewRedisResponseParser() redisResponseParser {
+	return redisResponseParser{}
 }
 
-func (parser redisResponseParser) GetNextResponse() (common.IResponse, error) {
+func (parser redisResponseParser) GetNextResponse(r *bufio.Reader) (common.IResponse, error) {
 	// peek first byte
-	b, err := parser.r.Peek(1)
+	b, err := r.Peek(1)
 	if err != nil {
 		if len(b) > 0 {
 			return nil, fmt.Errorf("received error", err, " first byte :'", b[0], "'")
@@ -338,19 +331,19 @@ func (parser redisResponseParser) GetNextResponse() (common.IResponse, error) {
 	}
 	switch b[0] {
 	case '$':
-		b, err = parser.r.Peek(2)
+		b, err = r.Peek(2)
 		if b[1] == '-' {
-			return parser.parseNilResponse()
+			return parser.parseNilResponse(r)
 		}
-		return parser.parseStringResponse()
+		return parser.parseStringResponse(r)
 	case '+':
-		return parser.parseStatusResponse()
+		return parser.parseStatusResponse(r)
 	case ':':
-		return parser.parseIntegerResponse()
+		return parser.parseIntegerResponse(r)
 	case '-':
-		return parser.parseErrorResponse()
+		return parser.parseErrorResponse(r)
 	case '*':
-		return parser.parseArrayResponse()
+		return parser.parseArrayResponse(r)
 
 	}
 

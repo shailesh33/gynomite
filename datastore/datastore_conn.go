@@ -36,10 +36,11 @@ func (c DataStoreConn) forwardRequestsToDatastore() error {
 
 func (c DataStoreConn) Run() error {
 	log.Printf("Running Loop for Datastore %v", c)
-	parser := NewResponseParser(bufio.NewReader(c.conn))
+	parser := NewResponseParser()
+	reader := bufio.NewReader(c.conn)
 	go c.forwardRequestsToDatastore()
 	for {
-		rsp, err := parser.GetNextResponse()
+		rsp, err := parser.GetNextResponse(reader)
 		if err != nil {
 			log.Println("Datastore: Failed to get next message", err)
 			return err
