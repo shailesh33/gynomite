@@ -12,13 +12,13 @@ import (
 	"github.com/shailesh33/gynomite/conf"
 	"github.com/shailesh33/gynomite/datastore"
 	"github.com/shailesh33/gynomite/hashkit"
-	"github.com/shailesh33/gynomite/topology"
 	"github.com/shailesh33/gynomite/server"
+	"github.com/shailesh33/gynomite/topology"
 
 	"io"
-	"sync"
 	"net/http"
 	_ "net/http/pprof"
+	"sync"
 )
 
 var (
@@ -30,8 +30,8 @@ var (
 	version       bool
 	statsAddr     string
 	statsInterval int
-	mbufSize	int
-	numMessages	int
+	mbufSize      int
+	numMessages   int
 )
 
 /*
@@ -93,7 +93,7 @@ func main() {
 		log.Printf("Failed to connect to datastore %s", ds)
 		os.Exit(1)
 	}
-	go http.ListenAndServe(":6060", nil)
+	go http.ListenAndServe(":8080", nil)
 	go common.ListenAndServe(conf.Pool.Listen, server.NewClientConn, topo, topo)
 
 	// Block forever

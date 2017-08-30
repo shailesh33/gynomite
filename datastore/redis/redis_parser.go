@@ -3,38 +3,42 @@ package datastore
 import (
 	"bufio"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shailesh33/gynomite/common"
 	"github.com/shailesh33/gynomite/hashkit"
-	"strconv"
-	"time"
-	"log"
 )
 
+// RedisRequest This is a request message for redis
 type RedisRequest struct {
 	common.BaseMessage
-	Name        string
-	requestType RedisRequestType
-	override    common.RoutingOverride
-	ctx         common.Context
-	Args        [][]byte
-	hashCode    uint32
-	quorum_responses int
-	max_responses	int
-	received_responses int
-	responses   []common.IResponse
-	done        chan common.IResponse
+	Name              string
+	requestType       RedisRequestType
+	override          common.RoutingOverride
+	ctx               common.Context
+	Args              [][]byte
+	hashCode          uint32
+	quorumResponses   int
+	maxResponses      int
+	receivedResponses int
+	responses         []common.IResponse
+	done              chan common.IResponse
 }
 
+// GetHashCode Return the hashcode of the key in the request
 func (r *RedisRequest) GetHashCode() uint32 {
 	return r.hashCode
 }
 
+// GetRoutingOverride Return the routing override for this request
 func (r *RedisRequest) GetRoutingOverride() common.RoutingOverride {
 	return r.override
 }
 
+// SetRoutingOverride set the routing override for this request
 func (r *RedisRequest) SetRoutingOverride(newOverride common.RoutingOverride) {
 	r.override = newOverride
 }
@@ -66,6 +70,7 @@ func (r *RedisRequest) getKey() []byte {
 	return []byte{}
 }
 
+// GetContext return the context of the request.
 func (r *RedisRequest) GetContext() common.Context {
 	return r.ctx
 }
@@ -74,12 +79,15 @@ func (r *RedisRequest) String() string {
 	return fmt.Sprintf("<%v %s '%s' Hash:%d Routing:%d>", r.Id, r.Name, r.getKey(), r.GetHashCode(), r.GetRoutingOverride())
 }
 
+// Done one can call this function to wait for the response on this request.
 func (r *RedisRequest) Done() common.IResponse {
 	// TODO: Implement some timeout here
+	t := time.NewTimer(5 * time.Second)
 	var rsp common.IResponse
 	select {
-	case rsp = <- r.done:
-	case <- time.After(5 * time.Second):
+	case rsp = <-r.done:
+		t.Stop()
+	case <-t.C:
 		log.Printf("req %s timedout", r)
 
 	}
@@ -87,17 +95,16 @@ func (r *RedisRequest) Done() common.IResponse {
 }
 
 func (r *RedisRequest) HandleResponse(rsp common.IResponse) error {
-	r.received_responses = r.received_responses + 1
+	r.receivedResponses = r.receivedResponses + 1
 	//log.Printf("request %s received responses %d max_responses %d", r.Name, r.received_responses, r.max_responses)
 	r.done <- rsp
 	return nil
 }
 
 func (r *RedisRequest) SetResponseCounts(quorumResponses, maxResponses int) {
-	r.quorum_responses = quorumResponses
-	r.max_responses = maxResponses
+	r.quorumResponses = quorumResponses
+	r.maxResponses = maxResponses
 }
-
 
 // Redis request Parser
 type RedisRequestParser struct {
@@ -108,7 +115,7 @@ func NewRedisRequestParser() RedisRequestParser {
 }
 
 func (parser RedisRequestParser) GetNextRequest(owner common.Context, r *bufio.Reader, consistency common.Consistency,
-			t common.INodePlacement) (common.IRequest, error) {
+	topo common.INodePlacement) (common.IRequest, error) {
 
 	line, err := r.ReadString('\n')
 	if err != nil {
@@ -121,7 +128,7 @@ func (parser RedisRequestParser) GetNextRequest(owner common.Context, r *bufio.R
 	var argsCount int
 
 	if _, err := fmt.Sscanf(line, "*%d\r\n", &argsCount); err != nil {
-		return nil, fmt.Errorf("invalid number of arguments in ", line)
+		return nil, fmt.Errorf("invalid number of arguments in %s", line)
 	}
 	// All next lines are pairs of:
 	//$<argument length> CR LF
@@ -145,24 +152,24 @@ func (parser RedisRequestParser) GetNextRequest(owner common.Context, r *bufio.R
 	}
 
 	override := GetRequestOverride(requestType, consistency)
-	quorumResponses, maxResponses := t.GetResponseCounts(override, consistency)
+	quorumResponses, maxResponses := topo.GetResponseCounts(override, consistency)
 	req := &RedisRequest{
-		BaseMessage :struct {
-			Id uint64
-			MsgType     common.MessageType
-		} {
-			Id:		common.GetNextId(),
-			MsgType:     common.REQUEST_DATASTORE,
+		BaseMessage: struct {
+			Id      uint64
+			MsgType common.MessageType
+		}{
+			Id:      common.GetNextId(),
+			MsgType: common.REQUEST_DATASTORE,
 		},
-		requestType: requestType,
-		Name:        strings.ToUpper(string(firstArg)),
-		override:    override,
-		ctx:         owner,
-		Args:        args,
-		quorum_responses:quorumResponses,
-		max_responses: maxResponses,
-		received_responses:0,
-		done:        make(chan common.IResponse, 5), // TODO: this is a hack, ideally the reader of this channel should close the channel
+		requestType:       requestType,
+		Name:              strings.ToUpper(string(firstArg)),
+		override:          override,
+		ctx:               owner,
+		Args:              args,
+		quorumResponses:   quorumResponses,
+		maxResponses:      maxResponses,
+		receivedResponses: 0,
+		done:              make(chan common.IResponse, 5), // TODO: this is a hack, ideally the reader of this channel should close the channel
 	}
 
 	req.hashCode = hashkit.GetHash(req.getKey())

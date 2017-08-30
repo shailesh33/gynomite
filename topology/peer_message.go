@@ -9,14 +9,6 @@ import (
 	"github.com/shailesh33/gynomite/datastore"
 )
 
-type Handler interface {
-	Handle(common.IMessage) error
-}
-
-type MsgForwarder interface {
-	MsgForward(common.IMessage) error
-}
-
 type PeerMessage struct {
 				 //"   $2014$ <msg_id> <type> <flags> <version> <is_same_dc> *<keylen> <key> *<payload_len>\r\n"
 				 // type:
@@ -69,7 +61,7 @@ func (m PeerMessage) Write(w *bufio.Writer) error {
 	w.WriteString(strconv.Itoa(int(m.Flags)))
 	w.WriteString(" ")
 	w.WriteString(strconv.Itoa(int(m.Version)))
-	if (m.IsSameDC) {
+	if m.IsSameDC {
 		w.WriteString(" 1")
 	} else {
 		w.WriteString(" 0")
@@ -98,14 +90,14 @@ func (m PeerMessage) Write(w *bufio.Writer) error {
 
 }
 
-func (r PeerMessage) Done() common.IResponse {
+func (m PeerMessage) Done() common.IResponse {
 	// TODO: Implement some timeout here
-	req := r.M.(common.IRequest)
+	req := m.M.(common.IRequest)
 	return req.Done()
 }
 
-func (r PeerMessage) GetContext() common.Context {
-	return r.ctx
+func (m PeerMessage) GetContext() common.Context {
+	return m.ctx
 }
 
 type PeerMessageParser struct {
@@ -139,7 +131,7 @@ func (parser PeerMessageParser) GetNextPeerMessage(placement common.INodePlaceme
 	//"   $2014$ <msg_id> <type> <flags> <version> <is_same_dc> *<keylen> <key> *<payload_len>\r\n"
 	if _, err := fmt.Sscanf(line, "   $2014$ %d %d %d %d %d *%d %s *%d\r\n",
 		&msgId, &msgType, &flags, &version, &isSameDC, &keyLength, &key, &payloadLength); err != nil {
-		return PeerMessage{}, fmt.Errorf("invalid arguments in ", line)
+		return PeerMessage{}, fmt.Errorf("invalid arguments in %s", line)
 	}
 	m := PeerMessage{
 		BaseMessage : common.BaseMessage {
@@ -162,7 +154,7 @@ func (parser PeerMessageParser) GetNextPeerMessage(placement common.INodePlaceme
 		datastoreParser := datastore.NewRequestParser()
 		req, err := datastoreParser.GetNextRequest(parser.owner, parser.r, common.DC_ONE, placement)
 		if err != nil {
-			return PeerMessage{}, fmt.Errorf("Failed to parse request from peer", err)
+			return PeerMessage{}, fmt.Errorf("Failed to parse request from peer %s", err.Error())
 		}
 		if !m.IsSameDC {
 			//log.Println("Overriding routing to", common.ROUTING_LOCAL_DC_ALL_RACKS_TOKEN_OWNER)
@@ -199,7 +191,7 @@ func (parser PeerMessageParser) GetNextPeerResponse() (*PeerMessage, error) {
 	//"   $2014$ <msg_id> <type> <flags> <version> <is_same_dc> *<keylen> <key> *<payload_len>\r\n"
 	if _, err := fmt.Sscanf(line, "   $2014$ %d %d %d %d %d *%d %s *%d\r\n",
 		&msgId, &msgType, &flags, &version, &isSameDC, &keyLength, &key, &payloadLength); err != nil {
-		return nil, fmt.Errorf("invalid arguments in ", line)
+		return nil, fmt.Errorf("invalid arguments in %s", line)
 	}
 	m := PeerMessage{
 		BaseMessage : common.BaseMessage {
@@ -222,7 +214,7 @@ func (parser PeerMessageParser) GetNextPeerResponse() (*PeerMessage, error) {
 		datastoreParser := datastore.NewResponseParser()
 		rsp, err := datastoreParser.GetNextResponse(parser.r)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse response from peer", err)
+			return nil, fmt.Errorf("Failed to parse response from peer %s", err.Error())
 		}
 
 		m.M = rsp

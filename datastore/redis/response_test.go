@@ -8,8 +8,10 @@ import (
 
 func TestResponse(t *testing.T) {
 	var r ArrayResponse
-	r.AppendArgs([]byte("test1"))
-	r.AppendArgs([]byte("test2"))
+	r1 := NewStringResponse([]byte("test1"))
+	r.AppendArgs(r1)
+	r2 := NewStringResponse([]byte("test1"))
+	r.AppendArgs(r2)
 
 	stdoutW := bufio.NewWriter(os.Stdout)
 	r.Write(stdoutW)

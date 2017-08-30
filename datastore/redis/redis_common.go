@@ -15,7 +15,7 @@ func readArgument(r *bufio.Reader) ([]byte, error) {
 
 	var length int
 	if _, err = fmt.Sscanf(line, "$%d\r\n", &length); err != nil {
-		return nil, fmt.Errorf("invalid length for argument in ", line)
+		return nil, fmt.Errorf("invalid length for argument in %s", line)
 	}
 
 	// we know the length of the argument. Just read it.
@@ -29,12 +29,12 @@ func readArgument(r *bufio.Reader) ([]byte, error) {
 
 	// Now check for trailing CR
 	if b, err := r.ReadByte(); err != nil || b != '\r' {
-		return nil, fmt.Errorf("Expected \\r, ", err)
+		return nil, fmt.Errorf("Expected \\r, %s", err.Error())
 	}
 
 	// And LF
 	if b, err := r.ReadByte(); err != nil || b != '\n' {
-		return nil, fmt.Errorf("Expected \\n, ", err)
+		return nil, fmt.Errorf("Expected \\n, %s", err.Error())
 	}
 
 	return data, nil

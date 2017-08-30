@@ -1,12 +1,13 @@
 package datastore
 
 import (
-	"github.com/shailesh33/gynomite/common"
 	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"strconv"
+
+	"github.com/shailesh33/gynomite/common"
 )
 
 type nilResponse struct {
@@ -15,12 +16,12 @@ type nilResponse struct {
 
 func newNilResponse() *nilResponse {
 	return &nilResponse{
-		BaseMessage :struct {
-			Id uint64
-			MsgType     common.MessageType
-		} {
-			Id:common.GetNextId(),
-			MsgType:common.RESPONSE_DATASTORE,
+		BaseMessage: struct {
+			Id      uint64
+			MsgType common.MessageType
+		}{
+			Id:      common.GetNextId(),
+			MsgType: common.RESPONSE_DATASTORE,
 		},
 	}
 }
@@ -31,7 +32,7 @@ func (r nilResponse) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func (parser redisResponseParser) parseNilResponse(r *bufio.Reader) (common.IResponse, error) {
+func (parser RedisResponseParser) parseNilResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -51,12 +52,12 @@ type integerResponse struct {
 
 func newIntegerResponse(i int) *integerResponse {
 	return &integerResponse{
-		BaseMessage :struct {
-			Id uint64
-			MsgType     common.MessageType
-		} {
-			Id: common.GetNextId(),
-			MsgType:common.RESPONSE_DATASTORE,
+		BaseMessage: struct {
+			Id      uint64
+			MsgType common.MessageType
+		}{
+			Id:      common.GetNextId(),
+			MsgType: common.RESPONSE_DATASTORE,
 		},
 		I: i,
 	}
@@ -70,7 +71,7 @@ func (r integerResponse) Write(w *bufio.Writer) error {
 	return nil
 }
 
-func (parser redisResponseParser) parseIntegerResponse(r *bufio.Reader) (common.IResponse, error) {
+func (parser RedisResponseParser) parseIntegerResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -95,18 +96,18 @@ type StatusResponse struct {
 
 func NewStatusResponse(s string) *StatusResponse {
 	return &StatusResponse{
-		BaseMessage :struct {
-			Id uint64
-			MsgType     common.MessageType
-		} {
-			Id: common.GetNextId(),
-			MsgType:common.RESPONSE_DATASTORE,
+		BaseMessage: struct {
+			Id      uint64
+			MsgType common.MessageType
+		}{
+			Id:      common.GetNextId(),
+			MsgType: common.RESPONSE_DATASTORE,
 		},
 		S: s,
 	}
 }
 
-func (parser redisResponseParser) parseStatusResponse(r *bufio.Reader) (common.IResponse, error) {
+func (parser RedisResponseParser) parseStatusResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -139,18 +140,18 @@ type ErrorResponse struct {
 
 func NewErrorResponse(s string) *ErrorResponse {
 	return &ErrorResponse{
-		BaseMessage :struct {
-			Id uint64
-			MsgType     common.MessageType
-		} {
-			Id: common.GetNextId(),
-			MsgType:common.RESPONSE_DATASTORE,
+		BaseMessage: struct {
+			Id      uint64
+			MsgType common.MessageType
+		}{
+			Id:      common.GetNextId(),
+			MsgType: common.RESPONSE_DATASTORE,
 		},
 		ErrorString: s,
 	}
 }
 
-func (parser redisResponseParser) parseErrorResponse(r *bufio.Reader) (common.IResponse, error) {
+func (parser RedisResponseParser) parseErrorResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -182,18 +183,18 @@ type StringResponse struct {
 
 func NewStringResponse(b []byte) *StringResponse {
 	return &StringResponse{
-		BaseMessage :struct {
-			Id uint64
-			MsgType     common.MessageType
-		} {
-			Id: common.GetNextId(),
-			MsgType:common.RESPONSE_DATASTORE,
+		BaseMessage: struct {
+			Id      uint64
+			MsgType common.MessageType
+		}{
+			Id:      common.GetNextId(),
+			MsgType: common.RESPONSE_DATASTORE,
 		},
 		data: b,
 	}
 }
 
-func (parser redisResponseParser) parseStringResponse(r *bufio.Reader) (common.IResponse, error) {
+func (parser RedisResponseParser) parseStringResponse(r *bufio.Reader) (common.IResponse, error) {
 	line, err := r.ReadString('\n')
 
 	if err != nil {
@@ -271,19 +272,19 @@ func (r ArrayResponse) AppendArgs(elem common.IResponse) {
 
 func NewArrayResponse() *ArrayResponse {
 	return &ArrayResponse{
-		BaseMessage :struct {
-			Id uint64
-			MsgType     common.MessageType
-		} {
-			Id: common.GetNextId(),
-			MsgType:common.RESPONSE_DATASTORE,
+		BaseMessage: struct {
+			Id      uint64
+			MsgType common.MessageType
+		}{
+			Id:      common.GetNextId(),
+			MsgType: common.RESPONSE_DATASTORE,
 		},
 	}
 }
 
 //TODO: The array response can have different types of elements in it
 // For example it could be array with few integers, some strings etc.
-func (parser redisResponseParser) parseArrayResponse(r *bufio.Reader) (common.IResponse, error) {
+func (parser RedisResponseParser) parseArrayResponse(r *bufio.Reader) (common.IResponse, error) {
 	rsp := NewArrayResponse()
 	line, err := r.ReadString('\n')
 	if err != nil {
@@ -310,24 +311,24 @@ func (parser redisResponseParser) parseArrayResponse(r *bufio.Reader) (common.IR
 	return rsp, nil
 }
 
-// Redis Response Parser
-type redisResponseParser struct {
+// RedisResponseParser parser for redis responses
+type RedisResponseParser struct {
 }
 
-func NewRedisResponseParser() redisResponseParser {
-	return redisResponseParser{}
+// NewRedisResponseParser get new response parser
+func NewRedisResponseParser() RedisResponseParser {
+	return RedisResponseParser{}
 }
 
-func (parser redisResponseParser) GetNextResponse(r *bufio.Reader) (common.IResponse, error) {
+func (parser RedisResponseParser) GetNextResponse(r *bufio.Reader) (common.IResponse, error) {
 	// peek first byte
 	b, err := r.Peek(1)
 	if err != nil {
 		if len(b) > 0 {
-			return nil, fmt.Errorf("received error", err, " first byte :'", b[0], "'")
+			return nil, fmt.Errorf("received error %s first byte :'%c'", err.Error(), b[0])
 		} else {
-			return nil, fmt.Errorf("received error", err)
+			return nil, fmt.Errorf("received error %s", err.Error())
 		}
-
 	}
 	switch b[0] {
 	case '$':
